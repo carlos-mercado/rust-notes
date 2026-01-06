@@ -154,3 +154,88 @@ Creating an array of with an explicit size and initialized value.
 #align(left, block[`let a: [3; 5];` ])
 
 This will create the array `[3,3,3,3,3]`
+
+
+=== \ _3.3 Functions_ \
+
+Rust uses snake casing for function AND variable names. 
+
+#align(left, block[
+`
+fn main() {
+  another_function();
+}
+
+fn another_function() {
+  println!("Another function!")
+}
+` 
+])
+
+#pagebreak() //---------------------------------------------
+
+\ _Parameters_ \
+
+Giving a function some parameters:
+
+`
+fn another_function(x: i32) {
+  println!("Another function!")
+}
+
+`
+Calling the function:
+
+`
+another_function(5);
+`
+\ _Statements and Expressions_ \ 
+
+*Statements*: Instructions that perform some action that do not return a value. \
+*Expressions*: Evaluate to a resultant value.
+
+`let y = 6;` is a _statement_.
+
+You can't do
+
+`let y = (let x = 6);` \
+
+This is because `let x = 6` is an expression there is nothing for y to bind to.
+
+You *CAN* bind variables to expression like so
+
+`
+let y = {
+  let x = 3;
+  x + 1
+};
+
+`
+The expression in those lines is
+
+`
+{
+  let x = 3;
+  x + 1
+};
+
+`
+In this case it evaluates to four. Notice that `x + 1` does not end with a semicolon. This is because if you did add a semicolon it would turn into a statement. Right now it returns x + 1 (so four).
+
+
+
+\ _Functions with Return Values_ \
+
+Functions can return values to the code that calls them. The return value of a function is the same as the value of the final expression in the block of the body function.
+
+`
+fn add_one(arg1: i32) -> i32 {
+    arg1 + 1
+}
+
+fn five() -> i32 {
+    5
+}
+`
+
+Notice, no ';'.

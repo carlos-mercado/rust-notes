@@ -1,4 +1,9 @@
 fn main()
 {
-    println!("hellow");
+    let y = {
+        let x = 3;
+        x + 1
+    };
+
+    println!("y is equal to {y}");
 }

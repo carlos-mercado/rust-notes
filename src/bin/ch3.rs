@@ -1,13 +1,12 @@
 fn main()
 {
-    let x = 5;
-    let x = x + 1;
+    let y = -33;
 
-    {
-        let x = x * 2;
-        println!("The value of x in the inner scope is: {x}");
-    }
+    let result = add_one(y);
 
-    println!("The value of x is: {x}");
+    println!("y is equal to {result}");
+}
 
+fn add_one(arg1: i32) -> i32 {
+    arg1 + 1
 }
