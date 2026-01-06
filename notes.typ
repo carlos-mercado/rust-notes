@@ -239,3 +239,85 @@ fn five() -> i32 {
 `
 
 Notice, no ';'.
+
+== \ _3.5 Control Flow_ \
+
+\ _if Expressions_ \
+
+`
+  let number = 3;
+
+  if number > 5
+  {
+      true
+  }
+  else
+  {
+      false
+  }
+
+`
+
+_Using if in a_ `let` _statement_
+
+`if` is an expression. That means we can use it to evaluate to some values. This is an example:
+
+`
+  let condition = true;
+  let number = if condition { 5 } else { 6 };
+
+`
+This will output 5 when number is printed to console.
+
+Note that each arm of the if statement must return a values of the same type. 
+
+This is an example of a assignment that is not possible:
+
+
+`
+  let condition = true;
+  let number = if condition { 5 } else { "six" };
+
+`
+_Repetition with loops_
+
+- `loop`
+- `while`
+- `for`
+
+_loop_
+`
+  fn main(){
+    loop{
+      //do something
+
+    }
+  }
+`
+_Returning values from loop_
+
+`
+  fn loop_until() -> u32
+  {
+      let mut counter = 0;
+
+      let res = loop {
+          counter += 1;
+          if counter == 10 {
+              break counter * 2;
+          }
+      };
+
+      res
+  }
+
+`
+_Disambiguating with Loop Labels_
+
+If you've ever wanted to break out of a loop but not the innermost one. You could do that by first given the loop you want to break out of a label like so:
+
+`'coutingup: loop {`
+
+Now that loop is labeled "countingup". You can break out of that loop, even if you are is another loop somewhere below countingup using;
+
+`break 'countingup;`
