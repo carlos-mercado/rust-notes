@@ -321,3 +321,150 @@ If you've ever wanted to break out of a loop but not the innermost one. You coul
 Now that loop is labeled "countingup". You can break out of that loop, even if you are is another loop somewhere below countingup using;
 
 `break 'countingup;`
+
+#pagebreak()
+== _Chapter 4: Understanding Ownership_
+
+\ _What is Ownership?_ \
+*Ownership* : A set of rules that govern how a Rust program manages memory.
+
+\ _Ownership Rules_ \
+- Each value in Rust has an _owner_.
+- There can only be one owner at a time.
+- When the owner goes out of scope the value.
+
+\ _Variable Scope_ \
+
+*Scope*: The range within a program where a item is valid.
+
+`let s = "hello"`
+
+This variable would be valid as annotated here:
+
+`
+{ // s is not valid here, since it's not yet declared
+  `let s = "hello"` // s is valid from this point onward
+
+} // the scope is now over, and s is no longer valid.
+
+`
+
+\ _The String Type_ \
+
+We cant mutate string literals like this:
+
+`let s = "hi there!"`
+
+with the string type we can:
+
+`let mut s = String::from("hello");` \
+`s.push_str(", world!");` \
+`println!("{s}")` \
+
+OK, but why can we mutate `String` but not string literal.
+
+We know a string literal's contents at compile time, making them fast and efficient, but that is as the cost of immutability. 
+
+With `String` type we need to be able to support a mutable, or growable piece of text, so we need to allocate some unknown-at-compile-time amount of memory on the heap to hold the text contents.
+
+How does rust return memory to the allocator when we're done using our `String`?
+
+The memory is automatically returned once the variable that owns it goes out of scope.
+
+
+\ _Variables and Data Interacting with Move_ \
+
+Try to guess what happens here:
+
+`
+let x = 5;
+let y = x;
+
+`
+You would think that x would be bound to the value '5'  and y would act as a copy and would also bind to the value '5'. You would be correct. Since five is a known, fixed size, the two values are pushed onto the _stack_.
+
+Another example, try to guess what would happen here, under the hood?
+
+`
+let s1 = String::from("hello");
+let s2 = s1;
+
+`
+It's a little different here. `String` exists because you might want a string that can change, be `mutable`. So we can't push s1 to the _stack_, it is not of fixed size. s1 is a pointer to some space in the _heap_'s  memory, where the actual string data is stored. So, what happens when we do `let s2 = s1;`? We create a copy of the pointer s1 and assign it to s2 that pointer points to the same spot in the _heap_ that s1 does.
+
+If you try running this code and try to print the value of s1 later you will get an error because rust _invalidates_ s1 after `let s2 = s1`. 
+
+\ _Scope and Assignment_ \
+
+If you do this:
+
+`
+let mut s = String::from("hello");
+s = String::from("ahoy");
+
+println!("{s}, world!")
+
+`
+A behavior similar to the one described previously will happen. The data in the heap that the variable references will be _invalidated_ when it is reassigned to "ahoy".
+
+\ _Variables and Data Interacting with Clone_ \
+
+Let's say you do want a DEEP COPY of a variable 
+
+`
+let s1 = String::from("hello");
+//let s2 = *DEEP COPY of S1*;
+//this behavior is achieved like so
+
+let s2 = s1.clone();
+`
+
+So now s1 owns a string object which has a pointer to its own memory in the heap. While at same time, s2 also owns a different but identical string object, that contains a pointer that points to a different space in memory but with the same contents as s1. 
+
+\ _Stack-Only Data: Copy_ \
+
+Why is `x` in this code segment still valid at the end of the segment.
+
+`
+let x = 5;
+let y = x;
+
+println!("x = {x}, y = {y}");
+
+`
+It's because the integers have fixed size so they are placed on the stack at compile time, this making copies of the values quick to make. 
+
+Types like Integers described here, have a special annotation called the `Copy` trait. If a type implements a `Copy` trait, variables that use it do not move rather they are trivially copied. So, they are still valid even after assignment to another variable.
+
+\ _Ownership and Functions_ \
+
+Passing a value to a function has a similar behavior to assigning a value to a variable as we have discussed.
+
+`
+fn main() {
+    let s = String::from("hello");  // s comes into scope
+
+    takes_ownership(s);             // s's value moves into the function...
+                                    // ... and so is no longer valid here
+
+    let x = 5;                      // x comes into scope
+
+    makes_copy(x);                  // Because i32 implements the Copy trait,
+                                    // x does NOT move into the function,
+                                    // so it's okay to use x afterward.
+
+} // Here, x goes out of scope, then s. However, because s's value was moved,
+  // nothing special happens.
+
+fn takes_ownership(some_string: String) { // some_string comes into scope
+    println!("{some_string}");
+} // Here, some_string goes out of scope and `drop` is called. The backing
+  // memory is freed.
+
+fn makes_copy(some_integer: i32) { // some_integer comes into scope
+    println!("{some_integer}");
+} // Here, some_integer goes out of scope. Nothing special happens.
+
+`
+
+

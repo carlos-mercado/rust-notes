@@ -9,15 +9,8 @@ fn main()
     }
 }
 
-fn f_to_c(temp: f32)-> f32
-{
-    (temp - 32.0) * 5.0 / 9.0
-}
-
-fn c_to_f(temp: f32)-> f32
-{
-    temp * 9.0 / 5.0 + 32.0
-}
+fn f_to_c(temp: f32)-> f32 { (temp - 32.0) * 5.0 / 9.0 }
+fn c_to_f(temp: f32)-> f32 { temp * 9.0 / 5.0 + 32.0 }
 
 //get the nth fib number
 fn fib(n: u32) -> u32
