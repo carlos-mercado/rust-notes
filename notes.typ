@@ -467,4 +467,170 @@ fn makes_copy(some_integer: i32) { // some_integer comes into scope
 
 `
 
+=== \ _4.2 References and Borrowing_ \
 
+If we do something like this to avoid using an invalid variable later in the program after s1 losses ownership of the string obj.
+`
+fn main() {
+    let s1 = String::from("hello");
+
+    let (s2, len) = calculate_length(s1);
+
+    println!("The length of '{s2}' is {len}.");
+}
+
+fn calculate_length(s: String) -> (String, usize) {
+    let length = s.len(); // len() returns the length of a String
+
+    (s, length)
+}
+
+`
+
+There is an obvious problem here. We have to return the string to the main function so that we can still use string after the call to calculate_length.
+
+Instead, we can give the function a _reference_ to the string object. Like so:
+
+`
+fn main() {
+    let s1 = String::from("hello");
+
+    let len = calculate_length(&s1);
+
+    println!("The length of '{s1}' is {len}.");
+}
+
+fn calculate_length(s: &String) -> usize {
+    s.len()
+
+}
+`
+
+This is what is happening here:
+
+- We create a variable `s1` we a assign it a string object. 
+- We pass a reference to the `calculate_length()` function, which expects it.
+- The function returns the length of s1.
+
+This process is called *_borrowing_*.
+
+Nice, but what if we try to modify the data inside of an object that we are referencing?
+
+It won't work. Trying something like this:
+
+`
+fn main() {
+    let s = String::from("hello");
+
+    change(&s);
+}
+
+fn change(some_string: &String) {
+    some_string.push_str(", world");
+}
+`
+Will fail at compile time. Why? reference are *_IMMUTABLE_* by default.
+
+
+\ _Mutable References_ \
+
+We can modify borrowed values if we do this:
+
+`
+fn main() {
+    let mut s = String::from("hello");
+
+    change(&mut s);
+}
+
+fn change(some_string: &mut String) {
+    some_string.push_str(", world");
+}
+
+`
+All we have to do is pass a mutable reference to a function that expects it and we're good to go!
+
+There is one restriction: If you have a can only have one mutable reference to a value/object at a time.
+
+Actually, there's another one we can't have a mutable reference while we have an immutable one. Because if we did the reference to the immutable value could have it's value change from under it!
+
+Multiple immutable references are allowed because, multiple readers does not no have the ability to affect anyone else's reading of the data.
+
+A fun thing to note is that a references scope starts when it's introduced and it ends when it is last used so this works:
+
+`
+fn main() 
+{
+    let mut s = String::from("hello there my name is ");
+
+    //whoa, two mutable references? how?
+
+    let s2 = &mut s;
+    println!("{s2}");
+    extendo(&mut s);
+
+    //because a references scope ends where it's last used. So there is
+    //only one mutable reference to 's' one time in the scope of the program 
+    //at a time.
+
+}
+
+
+fn extendo(input_string: &mut String)
+{
+    input_string.push_str("Carlos Mercado");
+
+}
+
+`
+
+While this doesn't
+
+`
+fn main() 
+{
+    let mut s = String::from("hello there my name is ");
+
+    //whoa, two mutable references? how?
+    let s2 = &mut s;
+
+    //because a references scope ends where it's last used. So there is
+    //only one mutable reference to 's' one time in the scope of the program 
+    //at a time.
+    extendo(&mut s);
+
+    println!("{s}, {s2}");
+
+}
+
+
+fn extendo(input_string: &mut String)
+{
+    input_string.push_str("Carlos Mercado");
+
+}
+
+`
+
+\ _Dangling References_ \
+
+Dangling Pointer: A pointer that references a location in memory that may have been given to someone else-by freeing some memory while preserving a pointer to that memory.  
+
+Think of why this wouldn't work:
+
+`
+fn main() {
+    let reference_to_nothing = dangle();
+}
+
+fn dangle() -> &String {
+    let s = String::from("hello");
+
+    &s
+}
+
+`
+
+*REMEMBER* that memory is freed when the owner of the memory goes out of scope. So in this case, the underlying reference would be pointing to some invalid memory. Luckily, rust doesn't let us do this and this program does not compile.
+
+To avoid this we can just transfer ownership by returning the actual string not just a reference to it. This process changes to transfers ownership to the variable reference_to_nothing which means that the underling data does not get freed at the end of the dangle() function scope. 
