@@ -636,3 +636,99 @@ fn dangle() -> &String {
 To avoid this we can just transfer ownership by returning the actual string not just a reference to it. This process changes to transfers ownership to the variable reference_to_nothing which means that the underling data does not get freed at the end of the dangle() function scope. 
 
 
+=== \ _4.3 The Slice Type_ \
+
+Problem... if we have a function that tracks the first word in a string split up with spaces, and that function returns some ending index of that first word, once we change that string by clearing it or changing the length of the first word somehow that returned number from the function has become out of sync with the actual string.
+
+\ _String Slices_ \
+
+A string slice a contiguous sequence of elements of a string.
+
+`
+    let s = String::from("Hello world");
+
+    let hello = &s[0..5];
+    let world = &s[6..11];
+
+`
+A cool thing here is that these two variables are references to not whole strings, but part of them.
+
+The string slice type is written as `str` so a reference to string slice would be `&str`.
+
+Going back to the problem previously discussed. Imagine if we had a function that instead of tracking the first index of a space string to denote the first word, returns a slice of a string. Now, after using the function and assigning the result slice reference to some variable, we use `.clear()` on the original string object. What happens when this program compiles? The program does not compile!
+
+Why? Remember we can't have an immutable reference to some variable and a mutable value to the same one. We don't want the immutable reference's value to change from under it! This is what happens when `.clear()` is used since clear need a mutable reference to the data.
+
+\ _String Literals as Slices_ \
+
+String literals are actually stored in the binary since their size is known at compile time. So fun fact,
+
+`let s = "Hello world";`
+
+the variable 's' here is actually a string slice reference or `&str`.
+
+
+=== Questions
+
+#align(center, block[
+  *What is a slice?*
+
+  A slice is a reference to a specific section of `String` or array. A slice references a specific, contiguous set of memory not the whole thing. Although they can be functionally the same, like `&s` and `&s[..]`
+])
+
+#align(center, block[
+  *Does a slice own the data it points to? What happens to the underlying data when the slice goes out of scope?*
+
+  A slice does not own the data it points to. It is a reference at the end of the day that means that ownership is never transferred. Just like normal references the when the reference to the slice goes out of scope, nothing happens to the underlying data until the owner of the data goes out of scope which is when the data will be dropped.
+])
+
+#align(center, block[
+  *Why is returning a `usize` index (as shown in Listing 4-7) considered "brittle" or prone to bugs compared to returning a string slide?*
+
+  The index is only meaningful when it is used with the exact same, unedited string or collection. If the string is changed in any way that changes the first word. The index returned loses all meaning, this can result in errors later on in the program if this value is used after the change.
+])
+
+#align(center, block[
+  *What's the actual data type of a string literal like `let s = "Hello";` and why are they always immutable*
+
+  The actual data type of 's' is &str or a string slice reference. String literals are always immutable because of their fixed size, which means that they store in the binaries read-only section. We cannot make changes to the binary at runtime.
+])
+
+
+#align(center, block[
+  *If you have `let s = String::from("Hello");` what are the different ways to write a slice that includes the entire string*
+
+  `
+    let way = &s[..];
+    let way = &s[0..s.len()];
+    let way = &s[..s.len()];
+    let way = &s[0..];
+  `
+])
+
+#align(center, block[
+  *What two specific pieces of data does a slice store internally?*
+
+  It stores a pointer to the start of the data and the length of the slice.
+])
+
+
+#align(center, block[
+  *Why is it more idiomatic to define a function signature as `fn first_word(s: &str) -> &str` instead of using &String*
+
+  It's better to use &str because if the user want to pass a string slice reference that is covered, if they want to pass a string reference, you pass the string reference it still works.
+])
+
+
+#align(center, block[
+  *If you have an active immutable slice of a String, why does the compiler prevent you from calling clear() on that same string*
+
+  This is the case because you can't have an active immutable reference and an active mutable reference to the same string (which clear() needs because it has to change the underlying data). The compiler stop this action from happening so that the data isn't changed up from under the immutable reference's feet. (prevent race condition and ensure safety).
+])
+
+
+#align(center, block[
+  *Given the array: `let a = [10, 20, 30, 40, 50]`, how would you create a slice containing the elements `[20, 30, 40]` and what would it's type be.*
+
+  `let slice = &a[1..4]`
+])
