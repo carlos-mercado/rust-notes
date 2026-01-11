@@ -634,3 +634,5 @@ fn dangle() -> &String {
 *REMEMBER* that memory is freed when the owner of the memory goes out of scope. So in this case, the underlying reference would be pointing to some invalid memory. Luckily, rust doesn't let us do this and this program does not compile.
 
 To avoid this we can just transfer ownership by returning the actual string not just a reference to it. This process changes to transfers ownership to the variable reference_to_nothing which means that the underling data does not get freed at the end of the dangle() function scope. 
+
+
