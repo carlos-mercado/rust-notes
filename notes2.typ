@@ -732,3 +732,143 @@ the variable 's' here is actually a string slice reference or `&str`.
 
   `let slice = &a[1..4]`
 ])
+
+
+#pagebreak()
+== _Chapter 5: Using `structs` to Structure Related Data_ 
+
+\ defining a `struct`.
+
+`
+struct User {
+  active: bool,
+  username: String,
+  email: String,
+  sign_in_count: u64,
+}
+`
+
+Want to use the `struct` that you have defined? This is how you create an instance.
+
+`
+let user1 = User {
+  active: true,
+  username: String::from("username_for_user1"),
+  email: String::from("someone@example.com"),
+  sign_in_count: 1,
+};
+
+`
+
+Want to access some value from the `struct` use dot notation
+
+`let uname = user1.username;`
+
+If you want to change some variable in a `struct` instance the variable must be set to `mut`.
+
+
+=== \ _Field Init Shorthand_ \
+
+
+`
+fn build_user(email: String, username: String) -> User
+{
+    User
+    {
+        active: false,
+        username,
+        email,
+        sign_in_count: 1,
+    }
+}
+
+`
+
+Notice. we don't have to do `username: username` or `email: email`. Why? Notice that the parameter names of the function and the `struct` field names are the exact same. This fact let's us take advantage of the _Field Init Shorthand_ syntax.
+
+=== \ _Creating Instances with Struct Update Syntax_ \
+
+Sometimes it's easier to use create a instance of a `struct` that is almost identical to another instance, because we can reuse the parameters like this:
+
+`
+let user2 = User {
+  active: user1.active,
+  username: user1.username,
+  email: String::from("another@example.com"),
+  sign_in_count: user1.sign_in_count,
+};
+
+`
+
+We can achieve the same result in a more concise manner with the _struct update_ syntax:
+
+`
+let user2 = user {
+  email: string::from("another@example.com"),
+  ..user1
+};
+
+`
+*VERY IMPORTANT NOTE* _struct update syntax_ uses `=` like assignment. This means that the data for `username` is *MOVED* not copied making user1 not valid after the move. If had done this would user1 be valid?
+
+`
+let user2 = user {
+  email: string::from("another@example.com"),
+  username: string::from("user2"),
+  ..user1
+};
+
+`
+Yes! Remember that u64 and bool implement Copy so those values will be copied instead of moved and the varable `user1` will still be valid.
+
+
+=== \ _Creating Different Types with Tuple Structs_ \
+
+_Tuple Structs_ give you the added meaning that the struct name provied but they don't have the names associated with each field. Rather just the types of the fields. 
+
+`
+struct Point(i32, i32, i32);
+struct Color(i32, i32, i32);
+
+fn main()
+{
+  let black = Color(0,0,0);
+  let origin = Color(0,0,0);
+}
+`
+
+If you are worried that black and origin will be interpreted as the same types, don't worry they won't be because they are instances of different tuple `structs`.
+
+You can destructure an instance like this: `let Point(x,y,z) = origin;` 
+
+=== \ _Defining Unit-Like `structs`_ \
+
+Want to define `structs` that don't have fields?
+
+`struct AlwaysEqual;`
+
+=== Questions
+
+#align(center, block[
+  *What is the primary difference between a Tuple and Struct?*
+
+  In a struct, each field is named. This makes the code more clear for a reader.
+])
+
+#align(center, block[
+  *Can you mutate a single field of a `struct` instance?*
+
+  No. To make a field of a `struct` instance mutable, the whole instance has to be mutable.
+])
+
+#align(center, block[
+  *What is a unit-like `struct` and when would you use one?*
+
+  A unit like `struct` is a `struct` with no fields. They are useful when you need to implement a trait on some type but don't have any data that you want to store in the type itself.
+])
+
+#align(center, block[
+  *How does ownership work when using the `struct` update syntax (..)*
+
+  If an instance of a `struct` only contains variables that implement the `Copy` trait, the data is not moved just copied and there is no ownership change, the previous variable will still be valid. Now, if there is a field that does not implement `Copy` the `struct` instance, the data is moved and the previous owner of the data will no longer be valid.
+])
