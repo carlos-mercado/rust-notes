@@ -872,3 +872,103 @@ Want to define `structs` that don't have fields?
 
   If an instance of a `struct` only contains variables that implement the `Copy` trait, the data is not moved just copied and there is no ownership change, the previous variable will still be valid. Now, if there is a field that does not implement `Copy` the `struct` instance, the data is moved and the previous owner of the data will no longer be valid.
 ])
+
+=== \ _5.3 Methods_ \
+
+`
+#[derive(Debug)]
+struct Rectangle 
+{
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle
+{
+    fn area(&self) -> u32
+    {
+        self.width * self.height
+    }
+}
+
+fn main()
+{
+    let r1 = Rectangle{ width: 10, height: 20, };
+
+    let area = r1.area();
+
+    println!("area: {area}");
+
+}
+`
+
+To define a method for a class, start an `impl` block for a given `struct`. `self` is actually short for `self: &Self` and `Self` is an alias for the type that the `impl` block is for. Methods must have a parameter named self of type Self for their first parameter. 
+
+Example method with more than one paramter:
+
+`
+impl Rectangle
+{
+    fn area(&self) -> u32
+    {
+        self.width * self.height
+    }
+
+    fn can_fit(&self, other: &Rectangle) -> bool
+    {
+        self.width > other.width && self.height > other.height
+    }
+}
+
+`
+
+=== \ _Associated Functions_ \
+
+Associated Functions are functions that are not methods, so no `self` parameter, but are part of the `impl` block.
+
+example:
+
+`
+impl Rectangle
+{
+    fn square(size: u32) -> Self
+    {
+      Self {
+        width: size,
+        height: size,
+      }
+    }
+}
+`
+Remember that the `self` keyword is an alias for the class name that appears after the `impl`. So this this function `square()` returns a instance of the class `Rectangle`.
+
+To call this associated function do `let sq = Rectangle::square(3);`
+
+
+=== Questions
+
+#align(center, block[
+  *What is the fundamental difference between a function and a method in Rust?*
+
+  Methods in rust are defined in an `impl` block. Methods also must have the self keyword as their first parameter.
+])
+
+#align(center, block[
+  *What does the `Self` keyword represent withing an `impl` block*
+
+  The `Self` keyboard is an alias for the type that `impl` associates with.
+])
+
+#align(center, block[
+  *When would you choose to use `self` (taking ownership) instead of `&self` (borrowing) as a method parameter*
+
+  You would pass self by reference if you did not want the variable associate with the underlying structure to be invalidated after it is passed. 
+])
+
+#align(center, block[
+  *What is an associated function, and how do you call one compared to a method?*
+
+  An associated function is a function defined in an `impl` block that does not have `self` as the first parameter. You can call these functions like `Rectangle::square(2)`.
+])
+
+
