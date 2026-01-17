@@ -972,3 +972,114 @@ To call this associated function do `let sq = Rectangle::square(3);`
 ])
 
 
+#pagebreak()
+== _Chapter 6: Defining an Enum_ 
+
+`structs` give you a way of grouping together related fields and data. `enums` give you a way of saying a value is one of a possible set of values. 
+
+For example, we can make an `enum` of a IP address types.
+
+`
+enum IpAddrKind {
+  V4,
+  V6,
+}
+
+`
+
+`IpAddrKind` is now a custom data type that we can use elsewhere in the code.
+
+
+=== \ _Enum Values_ \
+
+This is how you create instances of each of the two variants defined in `IpAddrKind`.
+
+`
+let four = IpAddrKind::V4;
+let six = IpAddrKind::V6;
+
+`
+
+Since these variants are of the same type, `IpAddrKind`, we can define a function that can take both variants. 
+
+`fn route(ip_kind: IpAddrKind) {}`
+
+Calling the function:
+
+`route(IpAddrKind::V4);
+route(IpAddrKind::V6);`
+
+Right now the `IPAddrKind` enum has no way of storing an actual IPv4 or IPv6 address. We can change that by doing this:
+
+`
+enum IpAddr {
+  V4(String),
+  V6(String),
+}
+`
+
+So now that means that we can do this:
+
+`let home = IpAddr::V4(String::from("127.0.0.1"));
+let loopback = IpAddr::V6(String::from("::1"));`
+
+We are attaching data to each `enum` variant directly. So, there is no need for a `struct`. The name of each `enum` variant also becomes a function that constructs an instance of an enum. So `IpAddr::V4()` is a function that takes a string arg and returns an instance of the `IpAddr` type.
+
+=== \ _The Option `enum`_ \
+
+The Option type encodes a very common scenerio in which a value could be _something_ or _nothing_.
+
+For example, want the first element in an array? If the array has a first element it should be returned, but if it doesn't nothing should be returned. This concept will help the compiler find errors that commonly pop up in other languages. 
+
+`
+enum Option<T> {
+  None,
+  Some(T),
+}
+
+`
+`<T>` is just a generic type parameter. `<T>` means that the `Some` variant of the `Option` `enum` can hold one piece of data of any type, and that each concrete type that gets used in place of T makes the overall `Option<T>` type a different type.
+
+So, `Option<i32> and Option<char>` are different _types_.
+
+Try to guess what happens here:
+`
+    let x: i8 = 5;
+    let y: Option<i8> = Some(5);
+
+    let sum = x + y;
+
+`
+If you guessed an error, you would be correct. Notice that `x and y` are different types. How can you add a  `Option<i8>` and an `i8`? Convert the `Option<i8>` to an `i8` right? How is that done?
+
+
+=== Questions
+
+#align(center, block[
+  *How do `enums` differ from `structs` in terms of relationship between their data fields?*
+
+  `structs` group together named fields, and every instance of the `struct` contain all of those fields.
+
+  `enums` define multiple variants, and each instance of the `enum` is one specific variant that contains only the data fields that  are associated with that variant.
+])
+
+#align(center, block[
+  *Why does book refer to null as a "billion dollar mistake"?*
+
+  Errors occur when trying to use a null value as a non-null value.
+])
+
+#align(center, block[
+  *If you have a variable of type <i8> and another of type Option<i8>, why can't you add them together?*
+
+  They are fundamentally different types so they cannot be added. If you want to add them you have to convert the Option<i8> to <i8> using the `match` expression or other methods.
+])
+
+
+
+#align(center, block[
+  *When you define a variant that takes arguments like `V4(String)` what does that variant name essentially become in your code?*
+
+  That variant becomes a function that _constructs_ an instance of the `enum`
+])
+
