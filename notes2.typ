@@ -1083,3 +1083,122 @@ If you guessed an error, you would be correct. Notice that `x and y` are differe
   That variant becomes a function that _constructs_ an instance of the `enum`
 ])
 
+
+=== \ _The `match` Control Flow Construct_ \
+
+`match` allows you to compare a value against a series of patterns and then execute code based on which pattern matches; 
+
+Example use:
+`
+let player = Position::ShootingGuard;
+
+match player
+{
+    Position::PointGuard => println!("Point Guard Player"),
+    Position::ShootingGuard => println!("Shooing Guard Player"),
+    Position::SmallForward => println!("Small Forward Player"),
+    Position::PowerForward => println!("Power Forward Player"),
+    Position::Center => println!("Center Player"),
+}
+
+`
+=== \ _Patterns That Bind to Values_ \
+
+If your `enums` store some data you can use `match` extract that data and use it if you want.
+
+`
+let player =  Position::PointGuard(String::from("Carlos"));
+
+
+match player
+{
+    Position::PointGuard(player_name) => println!("Point Guard name is: {player_name}"),
+    Position::ShootingGuard => println!("all other positions"),
+    Position::SmallForward => println!("all other positions"),
+    Position::PowerForward => println!("all other positions"),
+    Position::Center => println!("all other positions"),
+}
+
+`
+=== \ _The Option<T> `match` Pattern_ \ 
+
+`match` is a valid method to use when trying to use the inner `<T>` out of a `Option<T>`. Or handle an `Option<T>` altogether.
+
+`
+fn plus_one(x: Option<i32>) -> Option<i32>
+{
+    match x 
+    {
+        None => None,
+        Some(i) => Some(i + 1),
+    }
+}
+
+`
+
+=== \ _Catch-All Patterns and the `_` Placeholder_ \ 
+
+Let's say you want to use `match`, but you want some specific behavior for a couple of arms but default behavior for the rest.
+
+`
+let dice_roll = 9;
+match dice_roll {
+    3 => add_fancy_hat(),
+    7 => remove_fancy_hat(),
+    other => move_player(other),
+}
+
+fn add_fancy_hat() {}
+fn remove_fancy_hat() {}
+fn move_player(num_spaces: u8) {}
+
+`
+
+Note that the catch all pattern must come at the end because evaluation happens in order. So if you put the catch all at the beginning, the other arms would never run.
+
+If you want to have a catch all, but don't want to use the value, you can use this special pattern.
+
+`
+let dice_roll = 9;
+
+match dice_roll {
+    3 => add_fancy_hat(),
+    7 => remove_fancy_hat(),
+    _ => reroll(),
+}
+
+fn add_fancy_hat() {}
+fn remove_fancy_hat() {}
+fn reroll() {}
+
+`
+If you don't want run any code in a specific `match` arm you can do this `_ => ()`.
+
+
+=== Questions
+
+#align(center, block[
+  *Why is a `match` expression compared to a coin-sorting machine? How does the order of the "arms" affect the outcome?*
+
+  Like a coin-sorting machine `match` will move the value into an arm that "fits" the variable. The order of arms is important because if you have a catch-all arm before the other arms, those other arms will never run.
+])
+
+
+#align(center, block[
+  *What is the primary difference between the requirement for a condition in an `if` expression versus a `match` expression.*
+
+  The expression in an if statement must evaluate to a boolean, in a `match`, it can be any type.
+])
+
+#align(center, block[
+  *What happens if you define a `match` block for an `enum` but forget to include one of the variants? Why does Rust enforce this?*
+
+  If you forget to include a variant, the program will not compile. Rust does this do avoid errors that happen we assume we have a value when we might have null. 
+])
+
+#align(center, block[
+  *What happens if you define a `match` block for an `enum` but forget to include one of the variants? Why does Rust enforce this?*
+
+  If you forget to include a variant, the program will not compile. Rust does this do avoid errors that happen we assume we have a value when we might have null. 
+])
+
