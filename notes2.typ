@@ -18,7 +18,7 @@ In this code segment, var is an immutable variable if you tried to reassign it l
   #set align(left)
 `
 let var = 3;
-var = 3;
+var = 2;
   `
 ])
 
@@ -529,7 +529,7 @@ fn change(some_string: &String) {
     some_string.push_str(", world");
 }
 `
-Will fail at compile time. Why? reference are *_IMMUTABLE_* by default.
+Will fail at compile time. Why? References are *_IMMUTABLE_* by default.
 
 
 \ _Mutable References_ \
@@ -1084,7 +1084,7 @@ If you guessed an error, you would be correct. Notice that `x and y` are differe
 ])
 
 
-=== \ _The `match` Control Flow Construct_ \
+=== \ _6.2 The `match` Control Flow Construct_ \
 
 `match` allows you to compare a value against a series of patterns and then execute code based on which pattern matches; 
 
@@ -1193,12 +1193,287 @@ If you don't want run any code in a specific `match` arm you can do this `_ => (
 #align(center, block[
   *What happens if you define a `match` block for an `enum` but forget to include one of the variants? Why does Rust enforce this?*
 
-  If you forget to include a variant, the program will not compile. Rust does this do avoid errors that happen we assume we have a value when we might have null. 
+  If you forget to include a variant, the program will not compile. Rust does this do avoid errors that happen when we assume we have a value, when we might have null 
+])
+
+=== \ _6.3 Concise Control Flow with `if let` and `let else`_ \
+
+The `if let` syntax let you combine `if` and `let` into a less verbose way to handle values that match one pattern while ignoring the rest.
+
+If you use `match` to do something with a `Option<u8>` like this:
+
+`
+let config_max = Some(3u8);
+
+match config_max {
+  Some(max) => println!("The max is {max}")
+  _ => (),
+}
+
+`
+You can rewrite it in a shorter way using `if let`.
+
+`
+let config_max = Some(3u8);
+
+if let Some(max) = config_max
+{
+    println!("THe max is {max}");
+}
+
+`
+
+Just like that you have saved yourself some keystrokes, but at the cost of the exhaustive checking that `match` enforces. It's a trade off so, do what's appropriate for your application.
+
+You can include an else with an `if let`. If you want this kind of behavior with an `if let`:
+
+`
+let mut coin = Coin::Penny;
+
+match coin
+{
+    Coin::Quarter(state) => println!("The state for this Quarter is {state}"),
+    _ => print!("This coin is not a quarter"),
+    
+}
+
+`
+
+You can do this:
+
+`
+let coin = Coin::Penny;
+
+if let Coin::Quarter(state)  = coin
+{
+    println!("The state for this Quarter is {state}");
+}
+else
+{
+    print!("This coin is not a quarter");
+}
+`
+
+=== \ _Staying on the "Happy Path" with `let..else`_ \ 
+
+Example usage:
+
+`
+fn inc_quarter_counts(coin: Coin, counts:  &mut u32)
+{
+    let Coin::Quarter(_) = coin else { return; };
+
+    *counts = *counts + 1;
+}
+
+`
+
+Notice that we are able to immediately return from the function if the pattern does not match that of the pattern that we expected.
+
+Code inside of the else arm must return from the function.
+
+
+=== Questions
+
+#align(center, block[
+  *What is the primary trade off when choosing `if let` over a `match` expression*
+
+  A `match` expression is much more exhaustive, it makes sure all cases are accounted for. `if let` is more concise but it only accounts for pattern.
+])
+
+
+#align(center, block[
+  *In a `let...else` statement, where is the variable bound in the pattern available for use? How does this differ from the variable binding in an `if let` block?*
+
+  If the pattern does match the variable will be available to use in the outer scope of a let...else statement. In an `if let` statement the bound variable is only usable inside the block.
+
 ])
 
 #align(center, block[
-  *What happens if you define a `match` block for an `enum` but forget to include one of the variants? Why does Rust enforce this?*
+  *What is the strict requirement for the code inside the else block of a `let..else` statement?*
 
-  If you forget to include a variant, the program will not compile. Rust does this do avoid errors that happen we assume we have a value when we might have null. 
+  The code inside the `else` must return from the function, or use some other method to not allow execution past the let..else statement.
+])
+
+#align(center, block[
+  *Describe a scenario where `if let` is considered "syntax sugar"? What does it look like when rewritten as a standard `match`?*
+
+
+  `if let Coin::Dime = my_coin {} else {}`. 
+  This would be considered "syntactic sugar", it is less verbose than the `match` alternative:
+
+  `match my_coin { Coin::Dime => (), _ => (), }`
+
+])
+
+#pagebreak()
+== _Chapter 7: Packages, Crates, and Modules_ 
+=== \ _7.1 Packages and Crates_ \
+
+_Crates_
+- The smallest amount of code that the compiler considers at a time.
+- Can contain modules, which may be defined in other files that get compiled with the crate.
+- Two forms
+- - Binary Crate
+- - Library Crate
+
+*_Binary Crates_*: Programs that you can compile to an executable that you can run. Each must have a function called `main` that defined what happens when the executable runs.
+
+*_Library Crates_*: These crates don't have a `main` function. They define functionality that is to be shared with multiple projects.
+
+*_Crate Root_*: A source file that the rust compiler starts from and makes up the root module of your crate.
+
+*_Package_*: A set of one or more crates that provides a set of functionality
+
+=== \ _7.2 Control Scope and Privacy with Modules_ \
+
+/*I WILL FINISH THE NOTES FOR THIS CHAPTER LATER*/
+
+
+#pagebreak()
+== _Chapter 8: Common Collections_ 
+
+There are a number of useful data structures in the Rust standard library called _*Collections*_. The data that these collections point to is stored on the heap, meaning that the amount of data does not need to be known at compile time, so it can grow or shrink as the program runs.
+
+The Three Main Collections:
+- Vector
+- String
+- Hash Map
+
+=== \ _8.1 Storing Lists of Values with Vectors_ \
+
+To create a new, empty vector, call the `Vec::new` function.
+
+`let v: Vec<i32> = Vec::new();`
+
+Make sure to add a type annotation, although the compiler knows that `v` is a vector it does not know what type of data the vector will store.
+
+If you want to create `Vec<T>` with some initial values you can use the `vec!` macro.
+
+`let v = vec![1,2,3];`
+
+Here rust can infer that the type will be a vector of integers so the type would be `Vec<i32>` `i32` because that is the default integer type.
+
+To push to a vector, use the `push` method.
+
+`
+let mut v: Vec<i32> = Vec::new();
+
+v.push(1);
+v.push(2);
+v.push(3);
+
+`
+
+=== \ _Reading Elements of Vectors_ \
+
+Two approaches:
+- Indexing
+- Using the `get` method.
+
+The indexing approach:
+
+`let third: &i32 : &v[2];`
+
+The `get` approach:
+
+`let third: Option<&i32> = v.get(2);`
+
+What are the _differences_?
+
+When trying to access an invalid / out-of-bounds index
+- The indexing approach will cause the program to _panic_
+- The get approach will return `None` without _panic_ 'n
+
+Don't forget about those pesky borrowing rules! We can't hold an immutable reference to data while we also have a mutable reference to that same data!
+
+`
+let mut v = vec![1,2,3,4,5];
+
+let first = &v[0];
+
+v.push(6);
+
+println!("The first elem: {first}");
+
+`
+This won't work, the `push()` method needs a mutable reference to `v` and we already have an immutable reference to `v` with `first`.
+
+=== \ _Iterating Over the Values in a Vector_ \
+
+Using a `for` loop to get immutable reference to each element in a vector:
+
+`
+let v = vec![1,2,3,4,5];
+
+for i in &v
+{
+    println!("{i}");
+}
+
+`
+
+Now using a `for` loop to get a _mutable_ reference to each element:
+
+`
+let mut v = vec![1,2,3,4,5];
+
+for i in &mut v
+{
+    *i = *i + 1;
+}
+
+`
+
+=== \ _Using an Enum to Store Multiple Types_ \
+
+Vectors only store values that are of the same type, but with the help of `enums` we can functionally change that. Remember that all variants of a `enum` are defined under the same type.
+
+`
+enum SpreadsheetCell
+{
+    Int(i32),
+    Float(f32),
+    Text(String),
+}
+let row = vec![
+    SpreadsheetCell::Int(3),
+    SpreadsheetCell::Text(String::from("blue")),
+    SpreadsheetCell::Float(10.12),
+];
+
+`
+
+=== Questions
+
+#align(center, block[
+  *When using `Vec::new()` to create an empty vector without adding initial values, why is a type annotation required?*
+
+  A type annotation is required, because the compiler must know what kind of data you intend to store in the vector. This is not required when using the `vec!` macro when creating a vector with initial values because the compiler can infer the data being stored from those initial values.
+])
+
+#align(center, block[
+  *What is the fundamental difference in behavior between accessing a vector using indexing and using the `get` method?*
+
+  The get method will return a `Option<T>` while directly indexing will return a `T`. When accessing a out of bound index `get()` will return `None` and when doing the same thing for direct-indexing, the program will panic.
+])
+
+#align(center, block[
+  *Why does Rust prevent you from adding an element to a vector while you still hold an immutable reference to an existing element in that same vector*
+
+  Rust does not allow you to hold an immutable reference to some data while you also have a mutable reference to that same data for security. To be more specific this, in this case, this is not allowed because if you try to append to the vec in memory and that vector no longer fits in it's allocated space, the whole vector will have to move to a larger space in memory. This means that the space in memory that that immutable reference pointed to is no longer valid. This could lead to unexpected behavior in the program.
+])
+
+#align(center, block[
+  *What happens to the elements stored inside a vector when the vector variable goes out of scope*
+
+  The memory is freed.
+])
+
+
+#align(center, block[
+  *Since the vectors can only store values of the same type, how can you use an `enum` to technically store different data types in a single list?*
+
+  Since all variants of an `enum` are technically of the same type, you can take advantage of that fact and make a vector of that `enum`
 ])
 

@@ -1,49 +1,34 @@
 //#[derive(Debug)]
-enum Coin { Penny, Nickel, Dime, Quarter }
-//enum Position { PointGuard, ShootingGuard, SmallForward, PowerForward, Center }
-enum Position { PointGuard(String), ShootingGuard, SmallForward, PowerForward, Center }
+//enum Coin { Penny, Nickel, Dime, Quarter(String) }
+//enum Position { PointGuard(String), ShootingGuard, SmallForward, PowerForward, Center }
 
+enum Role { Admin(String), Editor, Viewer }
 
 fn main()
 {
-    /*
-    let y: Option<i8> = Some(5);
-    let result = match y
-    {
-        Some(val) => 10 * val,
-        None => 0,
-    };
-
-    println!("{result}");
-    */
-
-    //println!("{value}");
 
 
-
-    let five = Some(5);
-    let six = plus_one(five);
-    let none = plus_one(None);
-
+    let admin = Role::Admin(String::from("carlos"));
+    check_access(admin);
+    check_access(Role::Editor);
+    check_access(Role::Viewer);
 }
 
-fn value_in_cents(coin: Coin) -> u8 
+fn process_nested_option(outer: Option<Option<i32>>)
 {
-    match coin
+    let Some(Some(val)) = outer else { return; };
+
+    println!("The value is {val}");
+}
+
+fn check_access(role : Role)
+{
+    if let Role::Admin(name) = role
     {
-        Coin::Penny => 1,
-        Coin::Nickel => 5,
-        Coin::Dime => 10,
-        Coin::Quarter => 25,
+        println!("Access Granted. Welcome {name}.")
+    }
+    else
+    {
+        println!("Access Denied.")
     }
 }
-
-fn plus_one(x: Option<i32>) -> Option<i32>
-{
-    match x 
-    {
-        None => None,
-    }
-}
-
-
