@@ -1588,37 +1588,9 @@ Here `s` would be a `&str` that contains the first 4 bytes of the string. Since 
 
 To best operate on pieces of strings, be explicit about wanting characters or bytes. For individual Unicode scalar values, use the `chars` method. Calling `chars` on "Зд" sparates out and returns two values of type `char`, and you can iterate over the result to access each element:
 
-`for c in "Зд".chars() { println!("{c}"); } `
+`for c in "Зд".chars()
+{
+  println!("{c}");
+}
+`
 
-if you want bytes
-
-`for c in "Зд".bytes() { println!("{c}"); } `
-
-
-=== Questions
-
-#align(center, block[
-  *What is the fundamental difference between the `String` type and the string slice type `&str`*
-
-  Unlike the string slice type, the `String` type has a dynamic size, is owned, and is heap-allocated.
-])
-
-
-#align(center, block[
-  *Why does Rust not allow you to access a character using a simple index like s[0]*
-
-  Rust does not allow this behavior because you might need more than 1 byte to encode certain UTF-8 characters. If you try to index into a string with character size > 1byte, at s[0], what should the program return? The full char? But the char is greater than one byte is size!
-
-])
-
-#align(center, block[
-  *A string is described as a wrapper over which specific collection type*
-
-  `Vec<u8>`
-])
-
-#align(center, block[
-  *When you use the `+` operator to concentrate two strings, what happens to the ownership of the first argument?*
-
-  The ownership of the first argument is transferred to the add function.
-])
