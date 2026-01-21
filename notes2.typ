@@ -1622,3 +1622,103 @@ if you want bytes
 
   The ownership of the first argument is transferred to the add function.
 ])
+
+=== \ _8.3 Storing Keys with Associated Values in Hash Maps_ \
+
+The type `HashMap<K, V>` stores a mapping of keys of type `K` to values of type `V` using a hashing function.
+
+\ _Creating a New Hash Map_ \
+
+Using `new`:
+
+`let mut scores = HashMap::new(); `
+
+\ _Accessing Values in a Hash Map_ \
+
+Use the `get()` method, to access values in a `HashMap`.
+
+`
+let team_name = String::from("Blue");
+let score = scores.get(&team_name).copied().unwrap_or(0); 
+
+`
+What is happening:
+- The `get()` method will return an `Option<&V>`. If there is value for that key, `get()` returns None. 
+- The program calls `copied()` to handle the option data, to get a `Option<i32>` rather than an `Option<&i32>`.
+- The program then calls `unwrap_or()` to set the `score` to zero if scores doesn't have an entry for the key,.
+
+\ _Iterating over a `HashMap`_ \
+
+`
+for (key, value) in &scores
+{
+    println!("{key}: {value}");
+}
+
+`
+
+This will print each pair in an arbitrary order.
+
+\ _Managing Ownership in Hash Maps_ \
+
+Types that implement the `Copy` trait like `i32`, the values are copied into the hash map. For owned values like String, the values will be moved and the hash map will  be the owner of those values.
+
+If we instead move reference to values in the hash map, the values won't be moved. The values that the references point to must be valid for at least as long as the hash map is valid.
+
+\ _Updating a Hash Map_ \
+
+\ Overwriting:
+`
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Blue"), 50);
+
+`
+
+Adding a key and value only if a key isn't present:
+
+`
+scores.insert(String::from("Blue"), 10);
+scores.insert(String::from("Yellow"), 50);
+
+scores.entry(String::from("Blue")).or_insert(50);
+scores.entry(String::from("Green")).or_insert(25);
+
+`
+
+- If a key does not exist (the `entry` method find that out), `or_insert()` will insert the parameter as the value for the key.
+
+- If the key does exists, will return a mutable reference to the value for the corresponding key given to `entry`.
+
+Updating a value based on the Old Value:
+
+`
+let mut map = HashMap::new();
+let text = "hello world wonderful world";
+
+for word in text.split_whitespace()
+{
+    let count : &mut i32 = map.entry(word).or_insert(0);
+    *count += 1;
+}
+
+`
+
+=== Questions
+
+#align(center, block[
+  *When you insert a `String` value into a `HashMap`, what happens to the ownership of those variables? How does this differ from types like `i32`.*
+
+  When inserting a `String` into a `HashMap` the ownership will transfer to the `HashMap`. This differs from types like `i32`, that implement the `Copy` trait, where the data is just copied instead.
+])
+
+#align(center, block[
+  *Explain the purpose of the `entry()` method. How does combining it with `or_insert()` allow you to update a value only if a key does not already exist?*
+
+  The purpose of the `entry()` determine if a given key has an associated value. Using that information, `or_insert()` will either return a mutable reference to the value associated with that key, OR insert the parameter as the value for the key given to `entry()`.
+])
+
+#align(center, block[
+  *The `get()` method returns an `Option<&V>`. Why doesn't it return the value directly, and what is a common way to handle the case where a key might be missing?*
+
+  An `Option<&V>` is returned because a value might not exists for a given key. If a key is missing for a given value, use `unwrap_or` which will evaluate to the parameter if there is no associated value for a given key.
+])
