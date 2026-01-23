@@ -1,36 +1,50 @@
-use std::fs::{File, FileTimes};
-use std::io::{self, Read};
+//use std::net::IpAddr;
+
+struct ValidGuess
+{
+    value: i32,
+}
+
+impl ValidGuess
+{
+    fn new(val: i32) -> ValidGuess
+    {
+        if val < 1 || val > 100
+        {
+            panic!("Guess must be between 1 and 100, got {val}");
+        }
+
+        ValidGuess { value: val }
+    }
+
+    fn change_val(&mut self, val: i32)
+    {
+        if val < 1 || val > 100
+        {
+            panic!("Guess must be between 1 and 100, got {val}");
+        }
+
+        self.value = val;
+    }
+
+}
+
 
 
 fn main() 
 {
-    let mut s = String::from("test");
-    s.pop();
 
+    let mut my_guess = ValidGuess::new(5);
+
+    let ValidGuess { value: my_val } = my_guess;
+
+    println!("{my_val}");
+
+    my_guess.change_val(67);
+
+    let ValidGuess { value: my_val } = my_guess;
+
+    println!("{my_val}");
 }
 
-fn read_username_from_file() -> Result<String, io::Error> 
-{
-    let username_file_result : Result<File, std::io::Error> = File::open("username.txt");
 
-    let mut username_file : File = match username_file_result  {
-        Ok(file) => file,
-        Err(e) => return Err(e),
-    };
-
-    let mut username : String = String::new();
-
-    match username_file.read_to_string(&mut username) {
-        Ok(_) => Ok(username),
-        Err(e)  => Err(e),
-    }
-}
-
-fn read_username_from_file2() -> Result<String, io::Error> 
-{
-    let mut username_file = File::open("username.txt")?;
-    let mut username = String::new();
-    username_file.read_to_string(&mut username)?;
-
-    Ok(username)
-}
