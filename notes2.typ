@@ -1722,3 +1722,208 @@ for word in text.split_whitespace()
 
   An `Option<&V>` is returned because a value might not exists for a given key. If a key is missing for a given value, use `unwrap_or` which will evaluate to the parameter if there is no associated value for a given key.
 ])
+
+#pagebreak()
+== _Chapter 9: Error Handling_ 
+=== \ _9.1 Unrecoverable Errors with `panic!`_ \
+
+\ Explicitly calling `panic()`
+
+`fn main()
+{
+    panic!("crash and burn");
+}
+
+`
+
+Calling `panic()` by trying to accessing an invalid index.
+
+`fn main()
+{
+    let v = vec![1,2,3];
+    v[99];
+}
+` 
+This is a part of the output: 
+
+`index out of bounds the len is 3 but the index is 99
+note: run with 'RUST_BACKTRACE = 1' environment variable to display a backtrace. `
+
+The note is good to know. We can set the RUST_BACKTRACE environment variable to get a backtrace of what exactly happened to cause the error. 
+
+The _backtrace_ is a list of functions that have been called to get to that point.
+
+Setting `RUST_BACKTRACE` to 1 on the same program:
+
+`RUST_BACKTRACE=1 cargo run`
+
+=== \ _9.2 Recoverable Errors with `Result`_ \
+
+The `Result enum` definition:
+
+`
+enum Result(T, E)
+{
+  Ok(T),
+  Err(E),
+}
+
+`
+`T` and `E` are generic type parameters.
+- T represents the type of the value that will be returned within the `Ok` variant if all is good.
+- E represents the type of error that will be returned within the `Error` variant.
+
+Calling a function that returns a `Result`
+
+`
+let greeting_file_result = File::open("hello.txt");
+
+let f = match greeting_file_result {
+    Ok(file) => file,
+    Err(error) => panic!("Problemo opening file: {error:?}"),
+};
+
+`
+
+\ _Matching on Different Errors_ \
+
+Most times you are gonna want to approach different errors in different ways. For example if a file doesn't exist, why don't we create it? If we can't open a file because we don't have read permissions, we can `panic()` like before.
+
+`
+let greeting_file_result = File::open("hello.txt");
+
+let greeting_file = match greeting_file_result {
+    Ok(file) => file,
+    Err(error) => match error.kind() {
+        ErrorKind::NotFound => match File::create("hello.txt") {
+            Ok(fc) => fc,
+            Err(e) => panic!("Problem creating the file: {e:?}"),
+        },
+        _ => {
+            panic!("Problem opening the file: {error:?}");
+        }
+    },
+};
+`
+\ _Shortcuts for Panic on Error_ \
+
+The `unrwap` method will behave exactly like the code segment, two segments ago. On `Ok` the method will return the value inside the `Ok`, and on error it will call the `panic!` macro for us.
+
+`let greeting_file_result = File::open("hello.txt").unwrap();`
+
+We can also achieve the same behavior AND choose the error message that appears on `Err` by using the expect method.
+
+`
+let greeting_file_result = File::open("hello.txt")
+    .expect("Make sure hello.txt is in your project directory");
+`
+
+\ _Propagating Errors_ \
+
+When writing a function that has some code that might fail, instead of handling the error within the function itself, pass it off to the user. This is called _Propagating_ the error.
+
+Example: 
+
+`
+fn read_username_from_file() -> Result<String, io::Error> 
+{
+    let username_file_result : Result<File, std::io::Error> = File::open("username.txt");
+
+    let mut username_file : File = match username_file_result  {
+        Ok(file) => file,
+        Err(e) => return Err(e),
+    };
+
+    let mut username : String = String::new();
+
+    match username_file.read_to_string(&mut username) {
+        Ok(_) => Ok(username),
+        Err(e)  => Err(e),
+    }
+}
+
+`
+
+\ _The `?` Operator Shortcut_ \
+
+We can make the previous implementation easier using the `?` operator by:
+
+`
+fn read_username_from_file2() -> Result<String, io::Error> 
+
+{
+    let mut username_file = File::open("username.txt")?;
+    let mut username = String::new();
+    username_file.read_to_string(&mut username)?;
+
+    Ok(username)
+}
+
+
+`
+
+How `?` works here:
+- If the value of the `Result` is an `Ok`, the value inside will be returned.
+- If the value of the `Result` is an `Err`, the `Err` will be returned from the WHOLE function.
+
+
+=== \ _9.3 To `panic!` or Not to `panic!`_ \
+
+When should you call `panic!`? When should you return `Result`?
+
+_Examples, Prototype Code, and Tests_
+
+When using example to illustrate some concepts, including robust error-handling can make the thing that you are trying to illustrate seem overwhelming, so you might throw in an `unwrap` or a `expect`. These methods are also very helpful when prototyping, and not ready to make decisions on how to handle errors. These methods can act as markers that can tell you where to make the implementation more robust when you are ready to do so.
+
+_When You Have More Information Than the Compiler_
+
+If you know that some expression will always return an `Ok` because of your implementation. It would be a good idea to call `expect()`.
+
+`
+let home: IpAddr = "127.0.0.1"
+    .parse()
+    .expect("Hardcoded IP address should be valid");
+
+`
+
+We know that "127.0.0.1" is definitely a valid IPv4 address, but the compiler doesn't, so a `Result` will still be returned. That's why we call `expect` to get the value always, and we can put the reason why we expect that expression to always evaluate to an `Ok` variant as the argument to the method.
+
+
+_Guidelines for Error Handling_
+
+We should `panic` when code is or could end up in a _bad state_. 
+
+_*Bad State*_: When some assumption, guarantee, contract, or invariant has been broken such as when invalid values, contradictory values, or missing values are passed to your code-plus one or more of the following:
+- The bad state is something that is unexpected.
+- Code after this point needs to rely on not being in this bad state.
+- There is not a good way to encode this information in types that you use.
+
+_Custom Types for Validation_
+
+What if could implement a type that MUST be valid, so we can use it freely, without having to worry about a bad value putting a program in a bad state.
+
+Consider this module implementation:
+
+` pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 || value > 100 {
+            panic!("Guess value must be between 1 and 100, got {value}.");
+        }
+
+        Guess { value }
+    }
+
+    pub fn value(&self) -> i32 {
+        self.value
+    }
+}
+
+`
+
+Notice that to make a guess, the user must pass a value through the `new()` associated function. This means that the user must pass the test in `new` to get an instance of `Guess`. Therefore ensuring that the Guess value will lie between 1-100.
+
+
