@@ -1,50 +1,28 @@
-//use std::net::IpAddr;
-
-struct ValidGuess
+struct Grade
 {
     value: i32,
 }
 
-impl ValidGuess
+impl Grade
 {
-    fn new(val: i32) -> ValidGuess
+    fn new(value: i32) -> Result<Grade, String>
     {
-        if val < 1 || val > 100
+        if value < 0 || value > 100
         {
-            panic!("Guess must be between 1 and 100, got {val}");
+            return Err(String::from("Grade must be between 0 and 100, got {value}"));
         }
 
-        ValidGuess { value: val }
+        Ok(Grade { value })
     }
 
-    fn change_val(&mut self, val: i32)
-    {
-        if val < 1 || val > 100
-        {
-            panic!("Guess must be between 1 and 100, got {val}");
-        }
-
-        self.value = val;
-    }
-
+    fn value(&self) -> i32 { self.value }
 }
-
 
 
 fn main() 
 {
 
-    let mut my_guess = ValidGuess::new(5);
-
-    let ValidGuess { value: my_val } = my_guess;
-
-    println!("{my_val}");
-
-    my_guess.change_val(67);
-
-    let ValidGuess { value: my_val } = my_guess;
-
-    println!("{my_val}");
+    
 }
 
 

@@ -1904,7 +1904,7 @@ What if could implement a type that MUST be valid, so we can use it freely, with
 
 Consider this module implementation:
 
-` pub struct Guess {
+`pub struct Guess {
     value: i32,
 }
 
@@ -1926,4 +1926,227 @@ impl Guess {
 
 Notice that to make a guess, the user must pass a value through the `new()` associated function. This means that the user must pass the test in `new` to get an instance of `Guess`. Therefore ensuring that the Guess value will lie between 1-100.
 
+#pagebreak()
+== _Chapter 10: Generic Types, Traits, and Lifetimes_ 
+
+Function can take parameters of some generic type, they are not limited to concrete types like `i32, String`. We have already seen them with `Option<T>`, `Vec<T>`.
+
+=== _5.1 Generic Data Types_ 
+
+\ _In Function Definitions_ \
+
+Consider this code segment where two functions find the largest value in a slice.
+
+`
+fn largest_i32(list: &[i32]) -> &i32 {
+    let mut largest = &list[0];
+
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn largest_char(list: &[char]) -> &char {
+    let mut largest = &list[0];
+
+    for item in list {
+        if item > largest {
+            largest = item;
+        }
+    }
+
+    largest
+}
+
+fn main() {
+    let number_list = vec![34, 50, 25, 100, 65];
+
+    let result = largest_i32(&number_list);
+    println!("The largest number is {result}");
+
+    let char_list = vec!['y', 'm', 'a', 'q'];
+
+    let result = largest_char(&char_list);
+    println!("The largest char is {result}");
+}
+
+`
+There is code duplication here, let's take advantage of generic types by introducing them here.
+
+It would look like this: `fn largest<T>(list: &[T]) -> &T {`
+
+This function can be read as: "The function target is generic over some type T".
+
+
+\ _In `struct` Definitions_ \
+
+You can also use generic types for the field types in `structs`.
+
+`
+struct Point<T>
+{
+    x: T,
+    y: T,
+}
+
+`
+Note that here the types of `x and y` have to match they are both of the same generic type.
+
+
+\ _In `Enum` Definitions_ \
+
+The same principle applies for `enums`.
+
+`
+enum Option<T>
+{
+    Some(T),
+    None,
+}
+
+enum Result<T, E>
+{
+    Ok(T),
+    Err(E),
+}
+`
+\ _In Method Definitions_ \
+
+`struct Point<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Point<T> {
+    fn x(&self) -> &T {
+        &self.x
+    }
+}
+
+fn main() {
+    let p = Point { x: 5, y: 10 };
+
+    println!("p.x = {}", p.x());
+}
+
+`
+
+You can also specify constraints on generic types when defining methods by doing this:
+
+
+`
+impl Point<f32> {
+    fn distance_from_origin(&self) -> f32 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+}
+
+`
+
+This means the type `Point<f32>` will have a special function `distance_from_origin()` that other types `Point<T>` will not have.
+
+`
+struct Point<X1, Y1> {
+    x: X1,
+    y: Y1,
+}
+
+impl<X1, Y1> Point<X1, Y1> {
+    fn mixup<X2, Y2>(self, other: Point<X2, Y2>) -> Point<X1, Y2> {
+        Point {
+            x: self.x,
+            y: other.y,
+        }
+    }
+}
+
+fn main() {
+    let p1 = Point { x: 5, y: 10.4 };
+    let p2 = Point { x: "Hello", y: 'c' };
+
+    let p3 = p1.mixup(p2);
+
+    println!("p3.x = {}, p3.y = {}", p3.x, p3.y);
+}
+`
+
+Consider this code segment. Here the `mixup` method is generic over an additional two types this means that the "self" point and other point can have different types.
+
+
+
+
+=== Questions
+
+#align(center, block[
+  *Where exactly must you declare a generic type parameter in a function signature so the compiler can recognize it?*
+
+Immediately after the function name so `fn function_name<T>...`
+])
+
+#align(center, block[
+  *Why did the first version of the generic `largest<T>` function fail to compile?*
+
+  It failed to compile because the function would not work for all types.
+])
+
+#align(center, block[
+  *What is the standard convention for naming generic type parameters in Rust?*
+
+  Usually one uppercase letter, like 'T' which stands for Type.
+])
+
+#align(center, block[
+  *You define `struct Point<T> { x: T, y: T }`. Why does the compiler throw an error if you try to create a point with an integer `x` and a float `y`?*
+
+Because integer and float are two fundamentally different types. The point `struct` definition states that x and y can be any generic type, but they must be the SAME generic type together.
+
+])
+
+#align(center, block[
+  *How would you rewrite the `Point` struct to allow x and y to be different types from one another*
+
+  `struct Point<T, U> { x: Y, y: U }`
+
+])
+
+#align(center, block[
+  *Explain how the `Option<T>` and `Result<T,E> enums` use generics to handle optional values and potential errors across different data types.*
+
+  `Option` has `Some<T>` which wraps around a value of some generic type, and `Result` has `Ok(T)` and `Err(E)` each wrapping distinct types.
+
+])
+
+#align(center, block[
+  *Explain how the `Option<T>` and `Result<T,E> enums` use generics to handle optional values and potential errors across different data types.*
+
+  `Option` has `Some<T>` which wraps around a value of some generic type, and `Result` has `Ok(T)` and `Err(E)` each wrapping distinct types.
+
+])
+
+#align(center, block[
+  *Imagine you are writing a library for a 2D game. You want a Vector2D<T> struct. How would you define this struct so that both coordinates must be the same type?*
+])
+
+  `
+struct Vector2D<T>
+{
+    x: T,
+    y: T,
+}
+
+`
+  *How would you implement a method as_floats that only works if a vector is already made of f64 floats?*
+`
+impl Vector2D<f64>
+{
+    fn as_floats(&self) { }
+
+
+}
+
+  `
 
