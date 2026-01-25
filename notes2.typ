@@ -1931,7 +1931,7 @@ Notice that to make a guess, the user must pass a value through the `new()` asso
 
 Function can take parameters of some generic type, they are not limited to concrete types like `i32, String`. We have already seen them with `Option<T>`, `Vec<T>`.
 
-=== _5.1 Generic Data Types_ 
+=== _10.1 Generic Data Types_ 
 
 \ _In Function Definitions_ \
 
@@ -2139,14 +2139,81 @@ struct Vector2D<T>
 }
 
 `
+#align(center, block[
   *How would you implement a method as_floats that only works if a vector is already made of f64 floats?*
+])
 `
 impl Vector2D<f64>
 {
     fn as_floats(&self) { }
 
 
+}`
+
+=== _10.2 Defining Shred Behavior with Traits_ 
+
+\ *_Trait_*: Defines functionality that a particular type has and can share with other types.
+\ *_Trait Bounds_*: Used to specify that a generic type can be any type that has certain behavior.
+
+_Defining a Trait_
+
+`trait Summary 
+{
+    fn summarize(&self) -> String;
 }
 
-  `
+`
 
+Note you will probably be putting this in `src/lib.rs` not `main.rs` so pop a `pub` in front of trait so all crates depending on this crate can use it.
+
+Declaring a trait `Summary`. Inside the `{}` we declare the method signatures that describe the behaviors of types that implement this trait. In this case `summarize()`.
+
+Note that there is no implementation here. That is the job of each type that aims to implement this trait. Each type must provide their own custom behavior.
+
+\ _Implementing a Trait on a Type_ \
+
+`pub struct NewsArticle {
+    pub headline: String,
+    pub location: String,
+    pub author: String,
+    pub content: String,
+}
+
+impl Summary for NewsArticle {
+    fn summarize(&self) -> String {
+        format!("{}, by {} ({})", self.headline, self.author, self.location)
+    }
+}
+
+pub struct SocialPost {
+    pub username: String,
+    pub content: String,
+    pub reply: bool,
+    pub repost: bool,
+}
+
+impl Summary for SocialPost {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+}
+
+`
+
+A restriction:
+
+We can implement a trait on a type on if either the trait, the type, or both, are local to our crate.
+
+WE CAN:
+- implement a trait like `Display`, from the std, on a custom type like `SocialPost` as part of our crate functionality because the type `SocialPost` is local to our crate.
+
+- implement `Summary` on `Vec<T>` in our crate because the trait `Summary`   is local to our aggregator crate.
+
+
+WE CAN'T:
+- The `Display` trait on a `Vec<T>` within out crate. Both `Display` and `Vec<T>` are defined in the standard library, aka not in our local crate. 
+
+Rust does this to make sure that other people's code can't break your code and vice-versa. Without that rules, there could be two different implementations of a trait for the same type, and Rust would not know which to use.
+
+
+\ _Using Default Implementations_ \

@@ -1,22 +1,26 @@
-enum Model<T> { Sedan(T), SUV, Coupe, Hatchback, }
-
-struct Vector2D<T>
+trait Summary 
 {
-    x: T,
-    y: T,
+    fn summarize(&self) -> String;
 }
 
-impl Vector2D<f64>
+pub struct SocialPost
 {
-    fn as_floats(&self) { }
-
-
+    username: String,
+    content: String,
+    reply: bool,
+    repost: bool,
 }
 
+impl Summary for SocialPost {
+    fn summarize(&self) -> String {
+        format!("{}: {}", self.username, self.content)
+    }
+    
+}
 
 fn main() 
 {
-    let val = Model::Sedan(String::from("def"));
+
 
 }
 
