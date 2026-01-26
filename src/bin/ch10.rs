@@ -1,6 +1,12 @@
 trait Summary 
 {
-    fn summarize(&self) -> String;
+    fn summarize_author(&self) -> String;
+
+    fn summarize(&self) -> String
+    {
+        format!("read more from {}...", self.summarize_author())
+
+    }
 }
 
 pub struct SocialPost
@@ -14,6 +20,10 @@ pub struct SocialPost
 impl Summary for SocialPost {
     fn summarize(&self) -> String {
         format!("{}: {}", self.username, self.content)
+    }
+
+    fn summarize_author(&self) -> String {
+        String::from("Hi there")
     }
     
 }

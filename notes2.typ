@@ -2217,3 +2217,145 @@ Rust does this to make sure that other people's code can't break your code and v
 
 
 \ _Using Default Implementations_ \
+
+Want some default behavior for the methods of your traits?
+
+`trait Summary 
+{
+    fn summarize(&self) -> String {
+      String::from("(Read more...)")
+    }
+}
+
+`
+
+- You can still override this behavior by defining the method for the trait like we have done before.
+- Default implementations can call other methods from the same trait, even those that don't have a default implementation;
+- It's not possible to call the default implementation from an overriding implementation of that same method
+
+\ _Using Traits as Parameters_ \
+
+`
+pub fn notify(item: &impl Summary) {
+    println!("Breaking news! {}", item.summarize());
+}
+`
+Instead of a concrete type for the `item` parameter, we specify the `impl` keyword and the trait name. Now this function accepts any type that implements the specified trait.
+
+
+\ _Trait Bound Syntax_ \
+
+`
+pub fn notify<T: Summary>(item: &T) {
+    println!("Breaking news! {}", item.summarize());
+}
+`
+
+\ _Multiple Trait Bounds with the `+` Syntax_ \
+`
+pub fn notify(item: &(impl Summary + Display)) {
+
+OR
+
+pub fn notify<T: Summary + Display>(item: &T) {
+
+`
+\ _Clearer Trait Bounds with `where` Clauses_ \
+
+`
+fn some_function<T: Display + Clone, U: Clone + Debug>(t: &T, u: &U) -> i32 {
+
+TURNS INTO
+
+fn some_function<T, U>(t: &T, u: &U) -> i32
+where
+    T: Display + Clone,
+    U: Clone + Debug,
+{
+
+`
+
+\ _Returning Types that Implement Traits_ \
+
+`
+fn returns_summarizable() -> impl Summary {
+    SocialPost {
+        username: String::from("horse_ebooks"),
+        content: String::from(
+            "of course, as you probably already know, people",
+        ),
+        reply: false,
+        repost: false,
+    }
+}
+
+`
+Here the return type is set to `impl Summary` that means that the type that we return from this function will implement the trait `Summary`.
+
+
+\ _Using Trait Bounds to Conditionally Implement Methods_ \
+
+`
+use std::fmt::Display;
+
+struct Pair<T> {
+    x: T,
+    y: T,
+}
+
+impl<T> Pair<T> {
+    fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
+impl<T: Display + PartialOrd> Pair<T> {
+    fn cmp_display(&self) {
+        if self.x >= self.y {
+            println!("The largest member is x = {}", self.x);
+        } else {
+            println!("The largest member is y = {}", self.y);
+        }
+    }
+}
+
+`
+=== Questions
+
+#align(center, block[
+  *Explain the orphan rule regarding trait implementations*
+
+  We can implement a trait on a type, only if either the type or trait are local to the crate. This is called the orphan rule because there must be some parent (a type or trait local to your crate).
+])
+
+
+#align(center, block[
+  *How can a trait provide a default implementation that calls other methods within the same trait, even if those other methods don't have a default themselves?*
+
+  A trait with default implementation can call other methods within the same trait because the type implementing the trait MUST define all methods that do not have a default implemenation.
+])
+
+
+#align(center, block[
+  *What is the functional difference between using the `impl Trait` syntax and the generic trait bound syntax?*
+
+  The `impl Trait` syntax is just a more concise way of doing the same thing.
+])
+
+#align(center, block[
+  *What is the functional difference between using the `impl Trait` syntax and the generic trait bound syntax?*
+
+  The `impl Trait` syntax is just a more concise way of doing the same thing, but the trait bound syntax is able to define behaviors with more complexity.
+
+  This function that uses `impl Trait` here the arguments can be of different types as long as they implement the trait `Summary`
+  `pub fn notify(item1: &impl Summary, item2: &impl Summary)`
+  This function that uses trait bound syntax, it makes sure that both arguments are of the SAME type
+  `pub fn notify<T: Summary>(item1: &T, item2: &T)`
+
+])
+
+#align(center, block[
+  *What is a "blanket implementation"?*
+
+  A blanket implementation is a implementation of a trait on a type that satisfies the trait bounds. 
+])
