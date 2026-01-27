@@ -2478,4 +2478,93 @@ fn longest<'a>(a: &'a str, b: &str) -> &'a str
 
 When returning a reference from a function, the lifetime parameter for the return type needs to match the lifetime parameter for one of the parameters.
 
-_In Struct Definitions_
+\ _In Struct Definitions_ \
+
+The `structs` that we have made so far have only been those that are composed of owned fields. That does not have to be the case though. You can make `structs` with reference fields, but we have to add a lifetime annotation to every reference in the `structs` definition.
+
+`
+struct ImportantExcerpt<'a> {
+    part: &'a str,
+}
+
+fn main() {
+    let novel = String::from("Call me Ishmael. Some years ago...");
+    let first_sentence = novel.split('.').next().unwrap();
+    let i = ImportantExcerpt {
+        part: first_sentence,
+    };
+}
+
+`
+
+The single field in `ImportantExcept`, `part` hold a string slice, which is a reference.
+
+
+\ _Lifetime Elision_ \
+
+There are cases or situations where you will not have to write the lifetimes of your references. The compiler has some patterns built in that will infer them, called the *_lifetime elision rules_*. 
+
+*Input lifetimes*: Lifetimes on a function or method parameters.
+*Output lifetimes*: Lifetimes on return values.
+
+There three rules that the compiler uses to figure out the lifetimes of the references when there aren't explicit annotations. If the compiler is not able to provide a lifetime to all input and output lifetimes, it will result in an error.
+
+- Rule One: The compiler assigns a lifetime parameter to each parameter that's a reference.
+- Rule Two: If there is exactly one input lifetime parameter, that lifetime is assigned to all output life parameters
+- Rule Three: If there are multiple lifetime parameters, but one if them is &self or &mut self because this is a method, the lifetime of self is assigned to all output lifetime parameters.
+
+
+\ _In Method Definitions_ \
+
+Consider: `
+impl<'a> ImportantExcerpt<'a> {
+    fn level(&self) -> i32 {
+        3
+    }
+}
+
+`
+
+Here the first rule applies in the method `level()` so we don't have to add the lifetime to `self`.
+
+`
+impl<'a> ImportantExcerpt<'a> {
+    fn announce_and_return_part(&self, announcement: &str) -> &str {
+        println!("Attention please: {announcement}");
+        self.part
+    }
+}
+
+`
+Here the first rule applies, both `self` and `announcement` are given distinct lifetimes. Then, since `&self` is one of the arguments, rule three applies, so the lifetime of the output will match that of the lifetime of the `self`.
+
+\ _The Static Lifetime_ \
+
+This is a special lifetime that can live for the entire duration of the program. All string literals have the `'static` lifetime
+
+`let s: &'static str = "I have a static lifetime."; `
+
+
+\ _Generic Type Parameters, Trait Bounds, and Lifetimes_ \
+
+Generic type params, trait bounds, and lifetimes all in one function
+
+`use std::fmt::Display;
+
+fn longest_with_an_announcement<'a, T>(
+    x: &'a str,
+    y: &'a str,
+    ann: T,
+) -> &'a str
+where
+    T: Display,
+{
+    println!("Announcement! {ann}");
+    if x.len() > y.len() { x } else { y }
+}
+
+`
+
+My attempt at putting this function into words: The function `longest_with_an_announcement()` is generic over the type T, with the restriction that T must implement the trait `Display`. `longest_with_an_announcement()` specifies that all references in the signatures have the same lifetime `'a`. Takes three inputs. `x` a string slice, which is a reference, with lifetime `'a`, `y` which is also a string slice, with lifetime `'a`. Finally, the parameter `ann` has the generic type `T`.  This function returns a string slice with the lifetime `'a`.
+
+

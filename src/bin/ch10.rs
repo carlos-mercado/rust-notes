@@ -1,5 +1,6 @@
 fn main() 
 {
+    let s: &'static str = "I have a static lifetime.";
 
     let not_this_string = String::from("a");
 
