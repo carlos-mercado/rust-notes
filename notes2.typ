@@ -2359,3 +2359,123 @@ impl<T: Display + PartialOrd> Pair<T> {
 
   A blanket implementation is a implementation of a trait on a type that satisfies the trait bounds. 
 ])
+
+=== _10.3 Validating References with Lifetimes_ 
+
+\ *_Lifetime_*: The scope for which a reference is valid.
+- Lifetimes can be explicit OR inferred.
+- Annotation is only required when  the lifetimes of references could be related in a few different ways.
+
+_Dangling References_
+
+Lifetimes aim to prevent dangling references. A _dangling reference_ is a pointer or reference that points to a memory location that has been deallocated, freed, or gone out of scope.
+
+Consider:
+
+`
+let r;
+
+{
+    let x = 5;
+    r = &x;
+
+}
+println!("r: {r}");
+
+`
+
+This code will not compile. Why? The value that r is referencing has gone out of scope before we get to use it. 
+
+Rust knows that this code is invalid because of the borrow checker.
+
+_The Borrow Checker_
+
+The Rust compiler makes use of a "tool" called the borrow checker that compares scopes to determine whether all borrows are valid.
+
+`
+fn main() {
+    let r;                // ---------+-- 'a
+                          //          |
+    {                     //          |
+        let x = 5;        // -+-- 'b  |
+        r = &x;           //  |       |
+    }                     // -+       |
+                          //          |
+    println!("r: {r}");   //          |
+}                         // ---------+
+
+`
+
+Here we can see that the lifetime of `x`, annotated as `'b` is shorter that that of `r`. The program is rejected because 'b is shorter than 'a. The subject of the reference does not live as long as the reference
+
+Now consider the updated version:
+
+`fn main() {
+    let x = 5;            // ----------+-- 'b
+                          //           |
+    let r = &x;           // --+-- 'a  |
+                          //   |       |
+    println!("r: {r}");   //   |       |
+                          // --+       |
+}                         // ----------+
+
+`
+Here `x` has a longer lifetime than r which means that r can reference x because rust knows that the reference r will always be valid while x is valid.
+
+
+_Generic Lifetimes in Functions_
+
+Creating a function that return the longest of two string slices (taken as input):
+
+`
+fn longest(a: &str, b: &str) -> &str
+{
+    if a.len() > b.len() { a } else { b }
+
+
+`
+
+Problem! This function does not work! Why?
+
+The compiler does not know if the reference being returned refers to `a` or `b`. We don't know either it depends on which string slice is bigger! We will add generic lifetime parameter to give the compiler more info to do its job.
+
+_Lifetime Annotation Syntax_
+
+Lifetime annotations don't change how long any of the references live. Instead they describe the relationships of the lifetimes of multiple references to each other without affecting the lifetimes. 
+
+Functions can accept any reference with any lifetime by specifying a generic lifetime parameter.
+
+Syntax: `
+&i32        // a reference
+&'a i32     // a reference with an explicit lifetime
+&'a mut i32 // a mutable reference with an explicit lifetime
+`
+
+One lifetime annotation does not have much meaning by itself, the annotations are meant to tell rust how generic lifetime parameters of multiple references relate to each other.
+
+\ _In Function Signatures_ \
+
+`
+fn longest<'a>(a: &'a str, b: &'a str) -> &'a str
+{
+    if a.len() > b.len() { a } else { b }
+}
+`
+
+This function signature tells rust that for some lifetime `'a`, the function takes to string slice parameters that live at least as long as the lifetime `'a`.
+
+This means that the lifetime of the reference returned by the `longest()` function is the same as the smaller of the lifetimes of the values referred to by the function arguments.
+
+_Relationships_
+
+If we wanted to change `longest()` to always return the first parameter rather than the longest string slice, we wouldn't need a to specify a lifetime on the `b` parameter
+
+`
+fn longest<'a>(a: &'a str, b: &str) -> &'a str
+{
+    if a.len() > b.len() { a } else { b }
+}`
+
+When returning a reference from a function, the lifetime parameter for the return type needs to match the lifetime parameter for one of the parameters.
+
+_In Struct Definitions_
