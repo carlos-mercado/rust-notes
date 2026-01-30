@@ -2568,3 +2568,106 @@ where
 My attempt at putting this function into words: The function `longest_with_an_announcement()` is generic over the type T, with the restriction that T must implement the trait `Display`. `longest_with_an_announcement()` specifies that all references in the signatures have the same lifetime `'a`. Takes three inputs. `x` a string slice, which is a reference, with lifetime `'a`, `y` which is also a string slice, with lifetime `'a`. Finally, the parameter `ann` has the generic type `T`.  This function returns a string slice with the lifetime `'a`.
 
 
+
+#pagebreak()
+== _Chapter 11: Writing Automated Tests_ 
+
+
+=== _11.1 How to Write Tests_ 
+
+_*Tests*_: Rust functions that verify that the non-test code is functioning in the expected manner.
+
+Tests preform these three main actions:
+- Set up any needed data or state.
+- Run the code you want to test.
+- Asset that the results are what you expect.
+
+_Structuring Test Functions_
+
+The simplest way that you can define tests in rust, is simply any function that's annotated with the `test` attribute.
+
+_*Attributes*_: Metadata about pieces of rust code.
+
+To change a function to a test function simply add `#[test]` on the line before `fn`.
+
+You can run your tests with the `cargo test` command. 
+
+
+_Checking Results with `assert!`_
+
+`assert!` is a macro that takes an argument that evaluates to a boolean.
+- If the value is true, nothing happens and the test passes.
+- If the value is false, the macro calls `panic!`, causing the test to fail.
+
+
+_Testing Equality with `assert_eq!` and `assert_ne!`_
+
+These macros compare to arguments for equality or inequality.
+
+_Adding Custom Failure Messages_
+
+`assert!`, `assert_eq!` and `assert_ne!` can be passed a failure message as part of an optional argument.
+
+`
+let result = greeting("Carol");
+assert!(
+    result.contains("Carol"),
+    "Greeting did not contain name, value was `{result}`"
+
+);
+`
+
+Now you will get an informative message on error.
+
+_Checking for Panics with `should_panic`_
+
+Add the attribute `should_panic` to the test function. Note that it should go after the `test` attribute and before the function.
+
+
+
+`pub struct Guess {
+    value: i32,
+}
+
+impl Guess {
+    pub fn new(value: i32) -> Guess {
+        if value < 1 || value > 100 {
+            panic!("Guess value must be between 1 and 100, got {value}.");
+        }
+
+        Guess { value }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic]
+    fn greater_than_100() {
+        Guess::new(200);
+    }
+}
+`
+
+_Using `Result<T,E> in Tests`_
+
+`#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() -> Result<(), String> {
+        let result = add(2, 2);
+
+        if result == 4 {
+            Ok(())
+        } else {
+            Err(String::from("two plus two does not equal four"))
+        }
+    }
+}
+
+`
+
