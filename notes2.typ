@@ -2671,3 +2671,167 @@ mod tests {
 
 `
 
+=== _11.2 Controlling How Tests Are Run_ 
+
+`cargo run` => Compiles your code and then runs the resultant binary.
+`cargo test` => Compiles your code (in test mode) and then runs the resultant _test_ binary.
+
+
+\ _Running Tests in Parallel or Consecutively_ \
+
+When running multiple tests, they are ran in parallel using threads, for faster results. Therefore, make sure that the tests don't depend on each other or some shared state.
+
+If it is the case that you are testing a function that must have this behavior, you can use this option `--test-threads` flag.
+
+Example: `cargo test -- --test-threads=1`
+
+Only one thread means on parallelism.
+
+\ _Showing Function Output_ \
+
+If a test passes, and the function being tested prints to the standard output, the test will capture it, meaning that nothing will pre printed.
+
+If it fails we are able to see the printed output.
+
+You can change this behavior with:
+
+Example: `cargo test -- --show-output`
+
+
+\ _Running a Subset of Tests by Name_ \
+
+Consider:
+
+`
+pub fn add_two(a: u64) -> u64 {
+    a + 2
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn add_two_and_two() {
+        let result = add_two(2);
+        assert_eq!(result, 4);
+    }
+
+    #[test]
+    fn add_three_and_two() {
+        let result = add_two(3);
+        assert_eq!(result, 5);
+    }
+
+    #[test]
+    fn one_hundred() {
+        let result = add_two(100);
+        assert_eq!(result, 102);
+    }
+}
+
+`
+
+Running one test: `cargo test one_hundred`
+- This runs the test with the name `one_hundred`
+
+Filtering to run multiple tests: `cargo test add`
+- This runs all tests with `add` in the name.
+
+
+\ _Ignoring Tests Unless Specifically Requested_ \
+
+You can annotate test functions with `#[ignore]` if you have a function that you don't want to test unless you really really want to. This is useful if a test takes a long time and you don't want to test that scenario every time.
+
+
+=== _11.3 Test Organization_ 
+
+The 2 Categories of Testing:
+- _Unit tests_: Small are more focused. Testing one module in isolation at a time, and can test private interfaces.
+- _Integration Tests_: Entirely external to you library and use your code the same way any other external code would.
+
+
+\ _Uni Tests_ \
+
+Goal: Test each unit of code in isolation from the rest of the code to quickly poinpoint wher cod e is and isn't working as expected. 
+
+These tests will go in the `src` directory in each file with the code that they're testing. Create a module named tests in each file to contain the test functions and annotate the module with `cfg(test)`.
+
+\ _The `tests Module and #[cfg(test)]`_ \
+
+The `#cfg(test)]` annotation on the tests module tells rust compile and run the test only when running `cargo test`, not when running `cargo build`.
+
+\ _Private Function Tests_ \
+
+You can test private functions if you really want to, rust will not stop you.
+
+
+\ _Integration Test_ \
+
+These test are entirely external to your library. The tests will use your library in the same way any other code would. These tests make sure that all of the parts that make up your program fit together and work together. Parts of code that work fine in isolation might not do so when integrated with different parts of a program.
+
+\ _The tests Directory_ \
+
+`
+adder
+├── Cargo.lock
+├── Cargo.toml
+├── src
+│   └── lib.rs
+└── tests
+    └── integration_test.rs
+
+`
+
+*Example `integration_test.rs`*
+
+`
+use adder::add_two;
+
+
+#[test]
+fn it_adds_two() {
+    let result = add_two(2);
+    assert_eq!(result, 4);
+}
+`
+
+*output:*
+
+`
+$ cargo test
+   Compiling adder v0.1.0 (file:///projects/adder)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.31s
+     Running unittests src/lib.rs (target/debug/deps/adder-1082c4b063a8fbe6)
+
+running 1 test
+test tests::internal ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/integration_test.rs (target/debug/deps/integration_test-1082c4b063a8fbe6)
+
+running 1 test
+test it_adds_two ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests adder
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+`
+
+The first section is for unit tests.
+
+The integration tests section starts with the line `Running tests/integration_tests.rs`
+
+Then the Doc-tests adder section starts
+
+
+\ _Integration Tests for Binary Crates_ \
+
+If the project only contains a `src/main.rs` file and doesn't have a `src/lib.rs` file, we can't create integration tests in the tests directory and bring functions defined in the main.rs file into scope with a `use` statement.
