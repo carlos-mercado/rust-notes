@@ -2835,3 +2835,146 @@ Then the Doc-tests adder section starts
 \ _Integration Tests for Binary Crates_ \
 
 If the project only contains a `src/main.rs` file and doesn't have a `src/lib.rs` file, we can't create integration tests in the tests directory and bring functions defined in the main.rs file into scope with a `use` statement.
+
+#pagebreak()
+== _Chapter 13: Functional Language Features: Iterators and Closures_
+
+=== _13.1 Closures_
+
+\ *_Closures_*: Anonymous functions that you can save in a variable or pass as arguments to other functions.
+
+\ _Capturing the Environment_ \
+
+Consider this function from the text:
+`fn giveaway(&self, user_preference: Option<ShirtColor>) -> ShirtColor
+{
+    user_preference.unwrap_or_else(|| self.most_stocked());
+}`
+
+The `unwrap_or_else` method takes in one argument: a closure without any arguments, that returns a value T (It should match the same type stored in the Some(T) variant of option.), in this case `ShirtColor`.
+- If `Option<T>` is the `Some` variant. the method will return the value within the `Some`.
+- If `None` the method will call the closure and return the value returned by the closure.
+
+In the function we specify the closure expression`|| self.most_stocked()` as the argument to the method. This is a closure with no `params`. (Note that closures with args will have them between those two vertical bars). In the body of the closure we see that it calls `self.most_stocked`.
+
+_Important Note_. The closure captures an immutable reference to the `self Inventory` instance and passes it with the code we specify to the `unwrap_or_else` method.
+
+\ _Inferring and Annotating Closure Types_ \
+
+Closures don't require you to annotate the types of the parameters or the return value like functions do.
+
+Note that you can't do this:
+
+`
+let example_closure = |x| x;
+let result = example_closure(1);
+let result2 = example_closure(2);
+`
+
+You can't do this since the type of the closure could be inferred multiple ways. It is basically like saying:
+
+`
+let mut test_vec = Vec::new();
+test_vec.push(1);
+test_vec.push(String::from("testing"));
+test_vec.push(3); ;`
+
+
+\ _Capturing References or Moving Ownership_ \
+
+Closures can capture values from their environment in three ways:
+- Borrowing immutably
+- Borrowing mutably
+- Taking ownership
+
+Capturing an immutable reference:
+
+`fn main() {
+    let list = vec![1, 2, 3];
+    println!("Before defining closure: {list:?}");
+
+    let only_borrows = || println!("From closure: {list:?}");
+
+    println!("Before calling closure: {list:?}");
+    only_borrows();
+    println!("After calling closure: {list:?}");
+}
+
+`
+
+Capturing an immutable reference:
+
+
+`fn main() {
+    let mut list = vec![1, 2, 3];
+    println!("Before defining closure: {list:?}");
+
+    let mut borrows_mutably = || list.push(7);
+
+    borrows_mutably();
+    println!("After calling closure: {list:?}");
+}
+
+`
+
+Remember we can't have multiple mutable references to data at the same time so we can't add another mutable reference to `list` after defining the closure and before calling the closure.
+
+To force the transfer of ownership _to_ a closure, use the `move` keyword.
+
+`use std::thread;
+
+fn main() {
+    let list = vec![1, 2, 3];
+    println!("Before defining closure: {list:?}");
+
+    thread::spawn(move || println!("From thread: {list:?}"))
+        .join()
+        .unwrap();
+}
+
+`
+
+Here's what's happening in the code:
+- We spawn a new thread, giving the thread a closure to run as an argument.
+- The closure body prints out the list.
+
+In the definition of the closure, we put the `move` at the beginning to transfer ownership of the data in list.
+
+
+\ _Moving Captured Values Out of Closures_ \
+
+A closure body can do:
+- Move a captured value out of the closure.
+- Mutate the captured value.
+- Neither move nor mutate the value.
+- Capture nothing from the environment.
+
+Closures will automatically implement one, two, or all three of these `Fn` traits in a n additive fashion, depending on how the closure's body handles the values:
+
+- `FnOnce`: All closures that can be called once. (All closures implement this one)
+- `FnMut`: All closures that don't move captured values out of their body but might mutate the captured values.
+- `Fn`: All closures that don't move captured values out of their body and don't mutate the captured values, as well as closures that capture nothing form their environment.
+
+=== Questions
+
+#align(center, block[
+  *What determines how a closure captures a value from it's environment?*
+
+  The usage of the captured value determines how it is captured from the environment. If the value is mutated it is captured as mutable, if the value is just printed, it is captured as immutable. However if the `move` keyword is put at the beginning of the closure definition, the values ownership is transferred to the closure.
+])
+
+#align(center, block[
+  *When would you need to use the `move` keyword before a closure's parameter list?*
+
+  A scenario when you might use the `move` keyword would be to transfer ownership of a list to a closure that is running on a new thread. If you do not include the `move` keyword and the main thread finishes (and drops the data) before the new thread, the data in the new thread will be invalid
+])
+
+#align(center, block[
+  *What is the main difference between a closure that implements `FnMut` and one that only implements `FnOnce`?*
+
+- FnMut closures can mutate variables they capture from their environment, but they do not necessarily move (take ownership of) those variables, they borrow them mutably.
+- FnOnce closures can only be called once because they may move (take ownership of) captured variables, consuming them.
+- The main difference: FnMut allows multiple calls and mutable borrowing, while FnOnce allows only one call and may move captured values.
+  :w
+
+])
