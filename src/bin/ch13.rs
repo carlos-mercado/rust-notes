@@ -1,11 +1,9 @@
 fn main() {
-    let mut list = vec![1, 2, 3];
-    println!("Before defining closure: {list:?}");
+    let v1: Vec<i32> = vec![1, 2, 3];
 
-    let mut borrows_mutably = || list.push(7);
+    v1.iter().map(|x| x + 1);
 
-    borrows_mutably();
-    println!("After calling closure: {list:?}");
+    println!("{v1:?}");
 }
 
 

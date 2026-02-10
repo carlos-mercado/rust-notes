@@ -2975,6 +2975,286 @@ Closures will automatically implement one, two, or all three of these `Fn` trait
 - FnMut closures can mutate variables they capture from their environment, but they do not necessarily move (take ownership of) those variables, they borrow them mutably.
 - FnOnce closures can only be called once because they may move (take ownership of) captured variables, consuming them.
 - The main difference: FnMut allows multiple calls and mutable borrowing, while FnOnce allows only one call and may move captured values.
-  :w
+])
+
+=== _13.2 Processing a Series of Items with Iterators_
+
+Want to perform some task on a sequence of items in a turn? Use an iterator.
+
+Iterators have no effect until you call methods that consume the iterator to use it up.
+
+Consider: 
+
+`
+let v1 = vec![1,2,3];
+let it = v1.iter();
+`
+
+This code creates an iterator over the items in the vector v1, by calling the iter method defined on `Vec<T>`. But since there is no method called on the iterator to consume it, nothing useful happens.
+
+Using an iterator in a `for` loop.
+
+`
+let v1 = vec![1, 2, 3];
+
+let v1_iter = v1.iter();
+
+for val in v1_iter {
+    println!("Got: {val}");
+}
+
+`
+
+\ _The `Iterator` Trait and the `next` Method_ \
+
+All iterators implement the trait `Iterator` that is defined in the `std`.
+
+This is the definition:
+
+`
+pub trait Iterator {
+    type Item;
+
+    fn next(&mut self) -> Option<Self::Item>;
+
+    // methods with default implementations elided
+}
+`
+
+Note that `type Item;` is defining an associated type `Item` (more on associated types later). Basically code is saying that to implement the `Iterator` you must define an `Item` type, and this type is used in the return type of the next method. I.e. The `Item` type will be returned from the iterator.
+
+Implementors of the `Iterator` trait must implement the `next()` method. This method returns on item of the iterator at a time, wrapped in `Some`, and when the iteration is over, returns None.
+
+
+`
+#[test]
+fn iterator_demonstration() {
+    let v1 = vec![1, 2, 3];
+
+    let mut v1_iter = v1.iter();
+
+    assert_eq!(v1_iter.next(), Some(&1));
+    assert_eq!(v1_iter.next(), Some(&2));
+    assert_eq!(v1_iter.next(), Some(&3));
+    assert_eq!(v1_iter.next(), None);
+}
+
+`
+
+The values that we get from calls to `next` are immutable references to the values in the vector. The `iter` method produces an iterator over immutable references, but if you want to create an iterator that takes ownership of v1 and returns owned values, call `into_iter` instead of `iter`. If you want to iterate over mutable references, call `iter_mut`.
+
+
+\ _Methods That Consume the Iterator_ \
+
+_Consuming Adapters_: Methods that call `next`.
+
+Example the `sum` method:
+
+`
+#[test]
+fn iterator_sum() {
+    let v1 = vec![1, 2, 3];
+
+    let v1_iter = v1.iter();
+
+    let total: i32 = v1_iter.sum();
+
+    assert_eq!(total, 6);
+}
+
+`
+After the call to `sum` we can't use `v1_iter` because sum takes ownership of the iterator that it is called on.
+
+\ _Methods that Produce Other Iterators_ \
+
+_Iterator Adapters_: Methods that don't consume the iterator.
+
+Example, the `map` method.
+
+`
+let v1: Vec<i32> = vec![1, 2, 3];
+
+let res : Vec<_> = v1.iter().map(|x| x + 1).collect();
+
+`
+
+Note that if you were to remove the call to `collect()`, the program would not work. The compiler reminds us that iterators are lazy, we must consume the iterator to do anything, and that is what `collect()` does.
+
+
+\ _Closures That Capture Their Environment_ \
+
+A lot of iterator adapters will take closures as arguments, and a lot of those times the closures will capture their environment. 
+
+Example
+`#[derive(PartialEq, Debug)]
+struct Shoe {
+    size: u32,
+    style: String,
+}
+
+fn shoes_in_size(shoes: Vec<Shoe>, shoe_size: u32) -> Vec<Shoe> {
+    shoes.into_iter().filter(|s| s.size == shoe_size).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn filters_by_size() {
+        let shoes = vec![
+            Shoe {
+                size: 10,
+                style: String::from("sneaker"),
+            },
+            Shoe {
+                size: 13,
+                style: String::from("sandal"),
+            },
+            Shoe {
+                size: 10,
+                style: String::from("boot"),
+            },
+        ];
+
+        let in_my_size = shoes_in_size(shoes, 10);
+
+        assert_eq!(
+            in_my_size,
+            vec![
+                Shoe {
+                    size: 10,
+                    style: String::from("sneaker")
+                },
+                Shoe {
+                    size: 10,
+                    style: String::from("boot")
+                },
+            ]
+        );
+    }
+}
+
+`
+
+
+=== Questions
+#align(center, block[
+  *What happens when trying to run this code segment `v1.iter().map(|x| x + 1);` without any further function calls*
+
+  The closure is never called, iterators are lazy they don't do anything unless they are consumed.
+])
+
+#align(center, block[
+  *Consuming vs. Adapting. Which type is sum(), which type is filter()*
+
+  The `sum()` method is consuming, it does not return a iterator after it is done, and it calls next repeatedly until it returns `None`. 
+
+The `filter()` method is adapting, it returns an iterator, and does not consume the iterator.
+
+
+They both take ownership of the iterator but only consuming adapters, consume the iterator.
+])
+
+#align(center, block[
+  *When calling `.next()` manually on an iterator, why must the iterator variable be declared as `mut`?*
+
+Because the underlying sate of the iterator changes on the `.next()` call.
+
+  Why don't we have to do this when using a `for` loop?
+
+The loop takes ownership of the iterator and makes it mutable behind the scenes.
 
 ])
+
+#align(center, block[
+*Choosing the Right Iterator*
+`.iter()`: Produces a iterator over an immutable references.
+`.into_iter()`: Produces a iterator over owned values.
+`.inter_mut()`: Produces a iterator over owned values.
+])
+
+#pagebreak()
+== _Chapter 15: Smart Pointers_
+
+\ _Using `Box<T>` to Point to Data on the Heap_ \
+
+_Boxes_ allow us to store data on the heap, rather than the stack. What remains on the stack is a pointer to the heap data.
+
+_Boxes_ do not have a performance overhead.
+
+_Boxes will likely be used in these situations_:
+- When you have a type who's size is not known at compile time.
+- When you have alot of data, and you want to transfer ownership of that data, without copying the data.
+- When you want to own a value, and don't care that it's a specific type and only care that it implements a certain trait.
+
+\ _Storing Data on the Heap_ \
+
+Using a `Box<T>` to store an i32 value.
+
+`
+fn main()
+{
+    let b = Box::new(5);
+    println!("b = {b}");
+}
+`
+
+The value `5` will be allocated on the heap, and the program will print the "b = 5".
+
+\ _Enabling Recursive Types with Boxes_ \
+
+A value of a _recursive type_ can have another value of the same type as part of itself. The problem is that rust need to know at compile how much space a type takes up, but nesting types in this way can, produce a nest that could continue infinitely. 
+
+\ _Understanding the Cons List_ \
+
+A _cons list_ is a data structure that is a nested list of pairs:
+
+`(1, (2, (3, nil)))`
+
+Each item in a cons list contains two elements, the current value, and the next item. The last item in the list contains only a value called `Nil` without a next item.
+
+\ _Implementing a Cons List_ \
+
+`
+enum List 
+{
+    Cons(i32, Box<List>),
+    Nil,
+}
+`
+
+#align(center, block[
+*Where is the data stored when using Box<T>? Where does the actual data `T` actually reside*
+  The heap.
+])
+
+#align(center, block[
+*What is indirection?*
+  Indirection is accessing data through a pointer, reference or other intermediary. 
+])
+
+
+#align(center, block[
+*Why does Rust require types to be of known size at compile time? Why do recursive types like a `Cons list` fail this requirement without a pointer?*
+
+  If we don't know the size of a type when compiling a program, how will the compiler know how much memory to allocate when making a instance of a type? Recursive types fail at this since they are self-referencing in that, to know the size of a rec type we add up the sizes of the non-recurive fields, but we are eventually gonna have to find the size of recursize-type which depends on the size of the reqcusive type which depends on the size of the recusive type and so on. This is like asking someone for the definition of a word, in response they give you a response that has the word in the definition, it does not make it any clearer
+])
+
+
+#align(center, block[
+*Which two traits make `Box<T>` a smart pointer rather than just a raw pointer, and which functionality does each provide.*
+  `Deref`: Allows and instance of the smart pointer to behave like a reference so that you can write your code to work with either references or smart pointers.
+  `Drop`: Allows you to customize the code that's run when an instance of the smart pointer goes out of scope.
+])
+
+#align(center, block[
+*In the example of the `List` enum, why does changing `Cons(i32, List)` to `Cons(i32, Box<List>` allow the code to compile?*
+    Because a `Box<T>` is of known size, specifically `usize`, I believe. This makes the `List` type break out of the previous recursion.
+])
+
+#align(center, block[
+*What happens when a heap data when a `Box` variable goes out of scope?*
+  The data is dropped.
+])
+
