@@ -1,21 +1,46 @@
+
+/*
 enum ListNode<T>
 {
     Node(T, Box<ListNode<T>>),
     Nil
 }
+ */
 
+
+struct MyBox<T>(T);
+
+impl<T> MyBox<T>
+{
+    fn new(x: T) -> MyBox<T>
+    {
+        MyBox(x)
+    }
+}
+
+use std::ops::Deref;
+impl<T> Deref for MyBox<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target
+    {
+        &self.0
+    }
+}
+
+fn hello(name: &str)
+{
+    println!("Hello, {name}!");
+}
 
 fn main()
 {
-    let mut x = 5;
 
-    let x_reference = &mut x;
+    let inner = 5;
 
-    *x_reference += 5;
+    let b = MyBox::new(inner);
 
-    let boxed_x : Box<&mut i32> = Box::new(&mut x);
-
-    **boxed_x *= 2;
-
+    assert_eq!(5, inner);
+    assert_eq!(5, *b);
 
 }

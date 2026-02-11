@@ -3258,3 +3258,110 @@ enum List
   The data is dropped.
 ])
 
+=== \ _15.2 Treating Smart Pointers Like Regular References_ \
+
+If you implement the `Deref` trait you can customize the behavior of the `*` (dereference) operator. We can implement `Deref` in such a way that a smart pointer can be treated like a regular reference, and write code that operates on references that can also accept smart pointers too.
+
+\ _Following the Reference to the Value_ \
+
+A regular reference is a type of pointer, we can think of a pointer as a arrow to avalue stored somewhere else.
+
+
+`
+  let x = 5;
+  let y = &x;
+
+  assert_eq!(5, x);
+  assert_eq!(5, y);
+`
+
+Why wouldn't this work? Because in this case both x and y are of fundamentally different types. `x` is your run of the mill `i32` but `y` is a reference to an `i32`, so it's not actually an `i32` it is a "arrow" to an `i32`.
+
+
+`
+  let x = 5;
+  let y = &x;
+
+  assert_eq!(5, x);
+  assert_eq!(5, *y);
+`
+
+This is the correct comparison.
+
+
+\ _Using `Box<T>` Like a Reference_ \
+
+`
+  let x = 5;
+  let y = Box::new(x);
+
+  assert_eq!(5, x);
+  assert_eq!(5, *y);
+
+`
+We can use boxes to achieve similar behavior to that of references. Note that the behavior might seem identical remember that `Box::new(T)` creates data on the heap, so the value of `x` here is copied onto the heap, and the pointer will point to that location in the heap.
+
+\ _Defining Our Own Smart Pointer_ \
+
+`
+  struct MyBox<T>(T);
+
+  impl<T> MyBox<T>
+  {
+      fn new(x: T) -> MyBox<T>
+      {
+          MyBox(x)
+      }
+  }
+
+`
+
+Now if we try to use it:
+
+`
+  let inner = 5;
+
+  let b = MyBox::new(inner);
+
+  assert_eq!(5, inner);
+  assert_eq!(5, *b);
+
+`
+
+But, this doesn't work. Why? We have not implemented that functionality yet to do so, we must implement the `Deref` trait.
+
+\ _Implementing the `Deref` Trait_ \
+
+
+`
+  use std::ops::Deref;
+  impl<T> Deref for MyBox<T> {
+      type Target = T;
+
+      fn deref(&self) -> &Self::Target
+      {
+          &self.0
+      }
+  }
+
+`
+
+
+\ _Using Deref Coercion in Functions and Methods_ \
+
+_Defer Coercion_: Converting a reference to a type that implements the `Deref` into a referece to another type.
+
+So, an example would be converting &String -> &str because String implements the `Deref` trait such that it returns `&String`
+
+Say we have a function
+`
+fn hello(name: &str)
+{
+    println!("Hello, {name}!");
+}
+
+`
+
+Sure we can call this function with a string slice, but since our `Box<T>` specifically `&Box<String>` type can turn into a `&String` type by calling `deref()` and `&String` can be turned into `&str` by calling `deref`, we can pass a `&Box<String>` to the function.
+
+
