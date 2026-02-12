@@ -3364,4 +3364,126 @@ fn hello(name: &str)
 
 Sure we can call this function with a string slice, but since our `Box<T>` specifically `&Box<String>` type can turn into a `&String` type by calling `deref()` and `&String` can be turned into `&str` by calling `deref`, we can pass a `&Box<String>` to the function.
 
+=== \ _15.3 Running Code on Cleanup with the `Drop` Trait_ \
 
+Implementing the `Drop` trait let's you customize what happens when a value goes out of scope.
+
+Defining the behavior of a smart pointer's data when it goes out of scope.
+
+`
+struct CustomSmartPointer
+{
+    data: String,
+}
+
+impl Drop for CustomSmartPointer {
+    fn drop(&mut self)
+    {
+        println!("Dropping CustomSmartPointer with data: {}!", self.data)
+    }
+}
+
+fn main()
+{
+
+    let a = CustomSmartPointer{ data: String::from("one") };
+    let b = CustomSmartPointer{ data: String::from("two") };
+
+    println!("CustomSmartPointers created!");
+}
+
+
+`
+
+We defined the `Drop` trait to print the data of the pointer when it is dropped. This is the output:
+
+
+`CustomSmartPointers created!
+Dropping CustomSmartPointer with data: two!
+Dropping CustomSmartPointer with data: one!
+
+`
+
+We can't call the destructor explicitly. Doing `a.drop()` won't work. If yyou want to fore a value to be cleaned up early call `std::mem::drop` 
+
+
+=== Questions
+
+#align(center, block[
+  *Why the drop trait?*
+
+  Other languages force you to drop the data from memory manually, but this can cause issues because it is not uncommon to forget to free the data, this can cause the unfreed memory to pile up and eventually crash the program. Rust's approach is to do this automatically, not even giving the user the ability to forget to free the data. 
+])
+
+
+#align(center, block[
+  *If you create two variables, a and then b, in the same scope, and both implement the `Drop` trait, in what order will their drop methods be called when they go out of scope? Why is this specific order significant?*
+
+`b` will be dropped first, then `a`. This is because Rust drops variables in the reverse order of their declaration within a scope. This order is significant as it helps prevent resource dependency issues during cleanup.
+])
+
+=== \ _15.4 Running Code on Cleanup with the `Drop` Trait_ \
+
+In most cases, know exactly which variable own a given value. But there are cases where this is not the case. For example, in a graph data structure, multiple edges might point to the same node, and that node is conceptually owned by all edges that point to it. The data that makes up that node should only be freed when it doesn't have any edges pointing to it.
+
+To enable multiple ownership use the rust type `Rc<T>`, and abbreviation for _reference counting_. The type keeps track of the number of references to a value to determine whether or not the value is still in use.
+
+Use the type when you want to allocate some data on the heap for multiple parts of the program to read and we can't determine at compile time which part will finish using the data last.
+
+`Rc<T>` is only for use in single-threaded scenerios.
+
+\ _Using `Rc<T>` to Share Data_ \
+
+This doesn't work. Why?
+`
+enum List 
+{
+    Cons(i32, Box<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main()
+{
+    let a = Cons(5, Box::new(Cons(10, Box::new(Nil))));
+    let b = Cons(3, Box::new(a));
+    let c = Cons(3, Box::new(a));
+
+}
+
+`
+The `Cons` variants own the data that they hold, so when we create the `b` list, `a` is moved into `b` and `b` owns `a`. Then, we try to use `a` again when creating `c`, which me can't do since `a` has been moved to `b`.
+
+We could change the `Cons` def to hold references instead, but then we would need to specify lifetime parameters. Meaning every element in the list would need to live as long as the entire list, this might work for the previous example, but it would not always be the case.
+
+The `Rc<T>` approach:
+
+`
+use std::rc::Rc;
+
+enum List 
+{
+    Cons(i32, Rc<List>),
+    Nil,
+}
+
+use crate::List::{Cons, Nil};
+
+fn main()
+{
+    let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
+
+    let b = Cons(3, Rc::clone(&a));
+    let c = Cons(4, Rc::clone(&a));
+
+}
+
+
+`
+
+What's happening:
+- Creating a list holding 5 and 10,  and storing it in a new `Rc<List>` named a.
+- Creating list `b`, and calling the `Rc::clone` associated function and passing it a reference to the `a`.
+
+It is very important to note that although using `a.clone()` would work, it does something different. Most of the implementations of `.clone()` make deep copies of the data, this means that there would be completely new data created, we don't want that (probably), so we use `Rc::clone` which only increments the reference count.
