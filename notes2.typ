@@ -3422,7 +3422,7 @@ We can't call the destructor explicitly. Doing `a.drop()` won't work. If yyou wa
 `b` will be dropped first, then `a`. This is because Rust drops variables in the reverse order of their declaration within a scope. This order is significant as it helps prevent resource dependency issues during cleanup.
 ])
 
-=== \ _15.4 Running Code on Cleanup with the `Drop` Trait_ \
+=== \ _15.4 `Rc<T>`, the Reference Counted Smart Pointer_ \
 
 In most cases, know exactly which variable own a given value. But there are cases where this is not the case. For example, in a graph data structure, multiple edges might point to the same node, and that node is conceptually owned by all edges that point to it. The data that makes up that node should only be freed when it doesn't have any edges pointing to it.
 
@@ -3487,3 +3487,31 @@ What's happening:
 - Creating list `b`, and calling the `Rc::clone` associated function and passing it a reference to the `a`.
 
 It is very important to note that although using `a.clone()` would work, it does something different. Most of the implementations of `.clone()` make deep copies of the data, this means that there would be completely new data created, we don't want that (probably), so we use `Rc::clone` which only increments the reference count.
+
+=== \ _15.5 `RefCell<T>` and the interior Mutability Pattern_ \
+
+_Interior mutability_: A design pattern that allows you to mutate data even when there are immutable references to that data. Is is usually a no-no. The pattern uses `unsafe` code inside a data structure to bend the rules so that we can get control over mutation and borrowing.
+
+We use types that have this pattern only when we can ensure that the borrowing rules will be followed at runtime.
+
+
+=== Questions
+
+#align(center, block[
+  *Why does `RefCell<T>` allow you to mutate data even if the `RefCell` itself is stored in an immutable variable, whereas a `Box<T>` would not.*
+
+  `RefCell` uses "interior mutability", meaning that it moves the enforcement of borrowing rules from compile-time to runtime.
+])
+
+#align(center, block[
+  *What happens when executing this code?*
+`
+let data = RefCell::new(vec![1,2,3]);
+let mut borrow_1 = data.borrow_mut();
+let borrow_2 = data.borrow();
+borrow_1.push(4);
+`
+
+This code will compile, but will panic at run time when borrow_2 is called.
+Can't have an immutable and mutable reference at the same time.
+])
