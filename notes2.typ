@@ -3514,4 +3514,323 @@ borrow_1.push(4);
 
 This code will compile, but will panic at run time when borrow_2 is called.
 Can't have an immutable and mutable reference at the same time.
+
 ])
+
+=== \ _15.6 Reference Cycles Can Leak Memory_ \
+
+
+`
+use crate::List::{Cons, Nil};
+use std::cell::RefCell;
+use std::rc::Rc;
+
+#[derive(Debug)]
+enum List {
+    Cons(i32, RefCell<Rc<List>>),
+    Nil,
+}
+
+impl List {
+    fn tail(&self) -> Option<&RefCell<Rc<List>>> {
+        match self {
+            Cons(_, item) => Some(item),
+            Nil => None,
+        }
+    }
+}
+
+fn main() {}
+
+`
+
+We can create a reference cycle with these definitions like so:
+
+`
+let a = Rc::new(Cons(5, RefCell::new(Rc::new(Nil))));
+
+println!("a initial rc count = {}", Rc::strong_count(&a));
+println!("a next item = {:?}", a.tail());
+
+let b = Rc::new(Cons(10, RefCell::new(Rc::clone(&a))));
+
+println!("a rc count after b creation = {}", Rc::strong_count(&a));
+println!("b initial rc count = {}", Rc::strong_count(&b));
+println!("b next item = {:?}", b.tail());
+
+if let Some(link) = a.tail() {
+    *link.borrow_mut() = Rc::clone(&b);
+}
+
+println!("b rc count after changing a = {}", Rc::strong_count(&b));
+println!("a rc count after changing a = {}", Rc::strong_count(&a));
+
+`
+
+We are connecting the end of `a` to `b`, creating a cycle. The last two lines of code show print two and two. This means that there is two references to `a` and two to `b`. At the end of the function one instance will drop from `a` and another will drop from `b`. But that means that there will still be 1 reference for each of them alive. This means that the memory will not be dropped because the `Rc` count is not 0.
+
+
+#pagebreak()
+== _Fearless Concurrency_
+
+\ _Using Threads to Run Code Simultaneously_ \
+
+*Thread*: A feature provided by languages to run independent parts of the program simultaneously.
+
+Downsides:
+- Adds complexity.
+- No guarantee to the order in which parts of code will run on different threads.
+- - Deadlocks
+- - Race Conditions
+- - Bugs that only happen in certain situations, and are hard to reproduce and fix reliably.
+
+
+\ _Creating a New Thread with `spawn`_ \
+
+To create a thread call the `thread::spawn` associated function and pass it a closure containing the code that we want to run in the new thread.
+
+
+`
+use std::{thread, time::Duration};
+
+
+fn main()
+{
+    thread::spawn(|| {
+        for i in 0..10
+        {
+            println!("This is an ODD number from the first spawned thread: {}", i * 2 + 1);
+            thread::sleep(Duration::from_millis(10));
+        }
+    });
+
+    for i in 0..10
+    {
+        println!("This is an EVEN number from the main thread: {}", i * 2);
+        thread::sleep(Duration::from_millis(10));
+    }
+}
+
+`
+
+*_OUTPUT_*
+
+
+
+\ _Waiting for All Threads to Finish Using `join` Handles_ \
+
+If you try to run this program:
+
+`
+
+use std::{thread, time::Duration};
+
+fn main()
+{
+    thread::spawn(|| {
+        for i in 0..10
+        {
+            println!("This is an ODD number from the first spawned thread: {}", i * 2 + 1);
+        }
+    });
+
+}
+`
+
+You might not get anything to print to the screen. Why? As soon as the main thread of the program completes, all other threads are shut down, meaning that our spawned thread, might not even start printing any numbers before it is shut down.
+
+
+To have all the numbers properly print:
+
+`
+use std::{thread};
+
+fn main()
+{
+    let handle = thread::spawn(|| {
+        for i in 0..10
+        {
+            println!("This is an ODD number from the first spawned thread: {}", i * 2 + 1);
+        }
+    });
+
+
+
+    handle.join().unwrap();
+
+}
+
+`
+
+Here, we are assigning the variable *`handle`* to the *`thread::spawn(...`* this returns a type of *`JoinHandle<T>`*. This is an owned value, we can use the *`join()`* method on.
+
+
+The *`join()`* method on a handle blocks the thread currently running until thread being represented by the handle is finished.
+
+\ _Using `move` Closures with Threads_ \
+
+This code will not compile try to guess why:
+
+`
+use std::{f32::consts::LN_10, thread};
+
+fn main()
+{
+    let v = vec![1,2,3];
+
+    let handle = thread::spawn(|| {
+        println!("Here's a vector: {v:?}");
+    });
+
+    drop(v);
+
+    handle.join().unwrap();
+
+}
+
+
+`
+
+It could be the case that `v` could be dropped from the main thread, and when using v in the spawned thread, the thread would be using an invalid reference.
+
+We can fix this by adding the `move` keyword before the closure like so:
+
+`let handle = thread::spawn(move || {....`
+
+
+=== \ _16.2 Using Message Passing to Transfer Data Between Threads_ \
+
+_Channel_: An implementation in Rust that allows for data transmission between threads.
+
+There are two ends to a channel
+- *Transmitter*: Think of this end like a person sending a message down a stream via some sort of little boat. 
+- *Receiver*: This end is like the person waiting down the stream, waiting for the little boat.
+
+A channel is closed when either the transmitter or the receiver half is dropped.
+
+
+`
+  use std::sync::mpsc;
+
+  fn main()
+  {
+      let (tx, rc) = mpsc::channel();
+
+  }
+
+`
+
+The first value in this tuple is the sending end, the transmitter. The second is the receiver. 
+
+`
+  use std::{sync::mpsc, thread};
+
+  fn main()
+  {
+      let (tx, rc) = mpsc::channel();
+
+      let transmitter = thread::spawn(move || {
+          let val = String::from("how are you my friend?");
+          tx.send(val).unwrap();
+      });
+
+      let receiver = thread::spawn(move || {
+          let s : String = rc.recv().unwrap();
+          println!("transmitter sent: {s}");
+      });
+
+      
+
+      transmitter.join().unwrap(); receiver.join().unwrap();
+  }
+
+`
+
+In this program we move `tx` into one thread and `rc` into another. The transmitter sends a message via the `send()` method.
+
+The receiver will read the message with the `recv()` method, and print the result.
+
+`recv()` is not the only method you can use to read from a channel, you can also use `try_recv()`. The difference is that `recv()` is blocking and `try_recv()` is not but it returns a `Result<T, E>` so if there is nothing in the stream it will return an error, but if there is it will return an `Ok`.
+
+
+/ _Sending Multiple Values and Seeing the Receiver Waiting_ /
+
+
+`
+  use std::{sync::mpsc, thread::{self}};
+
+  fn main()
+  {
+      let (tx, rc) = mpsc::channel();
+
+      let _transmitter = thread::spawn(move || {
+          let vals = vec! [
+              String::from("hi"),
+              String::from("from"),
+              String::from("the"),
+              String::from("thread"),
+        
+          ];
+          for s in vals
+          {
+              tx.send(s).unwrap();
+              thread::sleep(Duration::from_secs(5));
+          }
+      });
+
+      for got in rc
+      {
+          println!("Message from the transmitter: {got}");
+      }
+  }
+
+`
+
+Here we are sending a bunch of strings one at a time down the stream. On the receivers end we are not calling `recv()` anymore, instead we treat `rc` as an iterator every time we receive a value we print it. The main thread will wait for each message until the transmitter closes the channel.
+
+\ _Creating Multiple Producers by Cloning the Transmitter_ \
+
+
+`
+  use std::{sync::mpsc, thread::{self}, time::Duration};
+
+  fn main()
+  {
+      let (tx, rc) = mpsc::channel();
+
+      let t2 = tx.clone();
+      let _transmitter = thread::spawn(move || {
+          let vals = vec! [
+              String::from("hi"),
+              String::from("from"),
+              String::from("the"),
+              String::from("thread"),
+          ];
+          for s in vals
+          {
+              tx.send(s).unwrap();
+              thread::sleep(Duration::from_secs(5));
+          }
+      });
+
+      let _transmitter2 = thread::spawn(move || {
+          let vals = vec! [
+              String::from("more"),
+              String::from("messages"),
+              String::from("from"),
+              String::from("thread two"),
+          ];
+          for s in vals
+          {
+              t2.send(s).unwrap();
+              thread::sleep(Duration::from_secs(5));
+          }
+      });
+
+      for got in rc
+      {
+          println!("Message from the transmitter: {got}");
+      }
+  }
+
+`
