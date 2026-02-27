@@ -3753,7 +3753,7 @@ The receiver will read the message with the `recv()` method, and print the resul
 `recv()` is not the only method you can use to read from a channel, you can also use `try_recv()`. The difference is that `recv()` is blocking and `try_recv()` is not but it returns a `Result<T, E>` so if there is nothing in the stream it will return an error, but if there is it will return an `Ok`.
 
 
-/ _Sending Multiple Values and Seeing the Receiver Waiting_ /
+\ _Sending Multiple Values and Seeing the Receiver Waiting_  \
 
 
 `
@@ -3832,5 +3832,69 @@ Here we are sending a bunch of strings one at a time down the stream. On the rec
           println!("Message from the transmitter: {got}");
       }
   }
+`
+
+=== \ _16.3 Shared State Concurrency_ \
+
+
+\ _Using Mutexes to Allow Access to Data from One Thread at a Time_ \
+
+*_Mutex_*: short for mutual exclusion. Allows only on thread to access some data at a given time.
+
+To access the data in a mutex we must first ask acquire the lock. The lock keeps track of who currently has access to the data.
+
+Two important rules to remember:
+- You must attempt to acquire the lock before using the data.
+- When you're done with the data that the mutex guards, you must unlock the data so other threads can acquire the lock.
+
+
+
+\ _The `Mutex<T>` API_ \
+
+#block(fill:luma(230), [ `use std::sync::Mutex;
+
+fn main()
+{
+    let m = Mutex::new(10);
+
+    {
+        let mut num = m.lock().unwrap();
+        *num += 1;
+    }
+
+    println!("m = {m:?}");
+
+}`])
+#align(center, block[_Simple use of `Mutex<T>`_])
+
+
+  Here we are putting the value 10 in a `Mutex`. We can access the value inside of a `Mutex` with the `lock()` method. This tells other threads that the another thread has the lock. We call the `unwrap()` method on the result because it might be the case that we try to acquire  lock from a thread that has panicked, so we choose to `unwrap()` on that case. We can then treat the return value as a mutable reference to 10.
+
+\ _Sharing a `Mutex<T>` Between Multiple Threads Safely With `Arc<T>`_ \
 
 `
+use std::sync::{Arc, Mutex};
+use std::thread;
+
+fn main() {
+    let counter = Arc::new(Mutex::new(0));
+    let mut handles = vec![];
+
+    for _ in 0..10 {
+        let counter = Arc::clone(&counter);
+        let handle = thread::spawn(move || {
+            let mut num = counter.lock().unwrap();
+
+            *num += 1;
+        });
+        handles.push(handle);
+    }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    println!("Result: {}", *counter.lock().unwrap());
+}
+`
+

@@ -1,40 +1,27 @@
-use std::{sync::mpsc, thread::{self}, time::Duration};
+use std::sync::{Arc, Mutex};
+use std::{thread, vec};
 
-fn main()
-{
-    let (tx, rc) = mpsc::channel();
+fn main() {
+    let counter = Arc::new(Mutex::new(String::from("base")));
+    let mut handles = vec![];
 
-    let t2 = tx.clone();
-    let _transmitter = thread::spawn(move || {
-        let vals = vec! [
-            String::from("hi"),
-            String::from("from"),
-            String::from("the"),
-            String::from("thread"),
-        ];
-        for s in vals
-        {
-            tx.send(s).unwrap();
-            thread::sleep(Duration::from_secs(5));
-        }
-    });
+    let strings = Arc::new(Mutex::new(String::from("outer")));
 
-    let _transmitter2 = thread::spawn(move || {
-        let vals = vec! [
-            String::from("more"),
-            String::from("messages"),
-            String::from("from"),
-            String::from("thread two"),
-        ];
-        for s in vals
-        {
-            t2.send(s).unwrap();
-            thread::sleep(Duration::from_secs(5));
-        }
-    });
-
-    for got in rc
+    for _ in 0..2 
     {
-        println!("Message from the transmitter: {got}");
+        let counter = Arc::clone(&counter);
+        let strings = Arc::clone(&strings);
+        let handle = thread::spawn(move || {
+            let mut base = counter.lock().unwrap();
+            let append_this = strings.lock().unwrap();
+            *base += &append_this;
+        });
+        handles.push(handle);
     }
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    println!("Result: {}", *counter.lock().unwrap());
 }
